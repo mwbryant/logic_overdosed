@@ -1,11 +1,17 @@
 #![allow(clippy::type_complexity)]
 mod art;
+mod map;
+mod player;
 mod utils;
 
 pub mod prelude {
     pub use crate::art::*;
+    pub use crate::map::*;
+    pub use crate::player::*;
     pub use crate::utils::*;
+
     pub use bevy::{prelude::*, utils::HashMap};
+    pub use bevy_rapier2d::prelude::*;
 
     pub const BACKGROUND_Z: f32 = 10.0;
     pub const ENEMY_Z: f32 = 90.0;

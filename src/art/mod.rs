@@ -8,7 +8,7 @@ pub use sprite_sheets::*;
 use crate::prelude::*;
 
 pub use fade_in::spawn_fadeout;
-pub use particles::create_new_rect_emitter;
+pub use particles::spawn_new_rect_emitter;
 
 use self::animation::AnimationPlugin;
 use self::fade_in::FadeInPlugin;
@@ -56,7 +56,8 @@ pub struct DeathAnimation;
 pub struct RectParticleEmitter {
     pub particle_parent: Entity,
     pub size: Vec2,
-    pub rate: Timer,
+    pub rate: Option<Timer>,
+    pub force_spawn: usize,
     pub varients: usize,
     //It would be nice to be able to give the emitter a tag to add to particles
     pub desc: ParticleDesc,

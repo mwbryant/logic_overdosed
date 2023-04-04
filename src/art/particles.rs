@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{rngs::ThreadRng, Rng};
 
 use crate::prelude::*;
 
@@ -15,45 +15,101 @@ impl Plugin for ParticlePlugin {
     }
 }
 
-pub fn create_new_rect_emitter(
+pub fn spawn_new_rect_emitter(
     commands: &mut Commands,
     particle_desc: ParticleDesc,
     position: Vec2,
     size: Vec2,
-    lifetime: f32,
+    lifetime: Option<f32>,
     varients: usize,
-    rate: f32,
+    rate: Option<f32>,
 ) -> Entity {
     let parent = commands
         .spawn((
             SpatialBundle::from_transform(Transform::from_xyz(position.x, position.y, PARTICLE_Z)),
-            Lifetime {
-                timer: Timer::from_seconds(
-                    lifetime + particle_desc.particle.lifetime.remaining_secs(),
-                    TimerMode::Once,
-                ),
-            },
             ParticleParent,
             Name::new("ParticleParent"),
         ))
         .id();
+    let mut desc = RectParticleEmitter {
+        particle_parent: parent,
+        size,
+        rate: None,
+        force_spawn: 0,
+        varients,
+        desc: particle_desc.clone(),
+    };
 
-    commands
+    if let Some(rate) = rate {
+        desc.rate = Some(Timer::from_seconds(rate, TimerMode::Repeating));
+    }
+
+    let emitter = commands
         .spawn((
             SpatialBundle::from_transform(Transform::from_xyz(position.x, position.y, PARTICLE_Z)),
-            Lifetime {
-                timer: Timer::from_seconds(lifetime, TimerMode::Once),
-            },
-            RectParticleEmitter {
-                particle_parent: parent,
-                size,
-                rate: Timer::from_seconds(rate, TimerMode::Repeating),
-                varients,
-                desc: particle_desc,
-            },
+            desc,
             Name::new("ParticleEmitter"),
         ))
-        .id()
+        .id();
+
+    if let Some(lifetime) = lifetime {
+        commands.entity(emitter).insert(Lifetime {
+            timer: Timer::from_seconds(lifetime, TimerMode::Once),
+        });
+
+        commands.entity(parent).insert(Lifetime {
+            timer: Timer::from_seconds(
+                lifetime + particle_desc.particle.lifetime.remaining_secs(),
+                TimerMode::Once,
+            ),
+        });
+    }
+
+    emitter
+}
+
+fn spawn_particle(
+    commands: &mut Commands,
+    parents: &Query<&GlobalTransform, With<ParticleParent>>,
+    emitter: &RectParticleEmitter,
+    emitter_transform: &GlobalTransform,
+    rng: &mut ThreadRng,
+) {
+    let (x_offset, y_offset) = (
+        rng.gen_range((-emitter.size.x / 2.0)..(emitter.size.x / 2.0)),
+        rng.gen_range((-emitter.size.y / 2.0)..(emitter.size.y / 2.0)),
+    );
+    let emitter_to_parent_difference = emitter_transform.translation().truncate()
+        - parents
+            .get(emitter.particle_parent)
+            .expect("No parent")
+            .translation()
+            .truncate();
+
+    //Faster to spawn batch or not noticible?
+    //TODO move all generic emitter work to a standalone function
+    let mut sprite = emitter.desc.sprite.clone();
+    sprite.sprite.index = rng.gen_range(0..emitter.varients);
+    sprite.transform.translation =
+        Vec3::new(x_offset, y_offset, 0.0) + emitter_to_parent_difference.extend(0.0);
+
+    let mut particle = commands.spawn((sprite, emitter.desc.particle.clone()));
+
+    if let Some(falling) = &emitter.desc.falling {
+        particle.insert(falling.clone());
+    }
+    if let Some(fading) = &emitter.desc.fading {
+        particle.insert(fading.clone());
+    }
+    if let Some(radial) = &emitter.desc.radial {
+        particle.insert(radial.clone());
+    }
+    if let Some(rotating) = &emitter.desc.rotating {
+        particle.insert(rotating.clone());
+    }
+
+    let particle = particle.id();
+    commands.entity(emitter.particle_parent).add_child(particle);
 }
 
 fn particle_emitter_spawn(
@@ -65,45 +121,29 @@ fn particle_emitter_spawn(
 ) {
     let mut rng = rand::thread_rng();
     for (mut emitter, emitter_transform) in &mut emitters {
-        emitter.rate.tick(time.delta());
+        if emitter.rate.is_some() {
+            emitter.rate.as_mut().unwrap().tick(time.delta());
 
-        for _i in 0..emitter.rate.times_finished_this_tick() {
-            let (x_offset, y_offset) = (
-                rng.gen_range((-emitter.size.x / 2.0)..(emitter.size.x / 2.0)),
-                rng.gen_range((-emitter.size.y / 2.0)..(emitter.size.y / 2.0)),
-            );
-            let emitter_to_parent_difference = emitter_transform.translation().truncate()
-                - parents
-                    .get(emitter.particle_parent)
-                    .expect("No parent")
-                    .translation()
-                    .truncate();
-
-            //Faster to spawn batch or not noticible?
-            //TODO move all generic emitter work to a standalone function
-            let mut sprite = emitter.desc.sprite.clone();
-            sprite.sprite.index = rng.gen_range(0..emitter.varients);
-            sprite.transform.translation =
-                Vec3::new(x_offset, y_offset, 0.0) + emitter_to_parent_difference.extend(0.0);
-
-            let mut particle = commands.spawn((sprite, emitter.desc.particle.clone()));
-
-            if let Some(falling) = &emitter.desc.falling {
-                particle.insert(falling.clone());
+            for _i in 0..emitter.rate.as_ref().unwrap().times_finished_this_tick() {
+                spawn_particle(
+                    &mut commands,
+                    &parents,
+                    &emitter,
+                    emitter_transform,
+                    &mut rng,
+                )
             }
-            if let Some(fading) = &emitter.desc.fading {
-                particle.insert(fading.clone());
-            }
-            if let Some(radial) = &emitter.desc.radial {
-                particle.insert(radial.clone());
-            }
-            if let Some(rotating) = &emitter.desc.rotating {
-                particle.insert(rotating.clone());
-            }
-
-            let particle = particle.id();
-            commands.entity(emitter.particle_parent).add_child(particle);
         }
+        for _i in 0..emitter.force_spawn {
+            spawn_particle(
+                &mut commands,
+                &parents,
+                &mut emitter,
+                emitter_transform,
+                &mut rng,
+            )
+        }
+        emitter.force_spawn = 0;
     }
 }
 
