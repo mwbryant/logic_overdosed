@@ -110,8 +110,6 @@ fn player_jump(
                 velocity.velocity += Vec2::new(0.0, jump_strength);
                 velocity.last_grounded = 999;
             }
-        } else {
-            info!("NOT Grounded");
         }
     }
 }

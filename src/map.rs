@@ -61,5 +61,6 @@ fn spawn_hit_box(commands: &mut Commands, block_size: Vec2, bottom_left_position
             bottom_left_position.x * 32.0 + half_size.x,
             bottom_left_position.y * 32.0 + half_size.y,
             0.0,
-        )));
+        )))
+        .insert(Name::new("Hitbox"));
 }
