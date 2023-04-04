@@ -10,10 +10,11 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 pub fn load_map(commands: &mut Commands) {
-    let file = File::open("assets/maps/test_room.map").unwrap();
-    let reader = BufReader::new(file);
+    let map = include_str!("../assets/maps/test_room.map");
+    //let file = File::open("assets/maps/test_room.map").unwrap();
+    //let reader = BufReader::new(map);
 
-    let mut lines: Vec<String> = reader.lines().map(|l| l.unwrap()).collect();
+    let mut lines: Vec<String> = map.lines().map(|l| l.to_string()).collect();
 
     lines.reverse();
 
