@@ -6,10 +6,8 @@ impl Plugin for MapPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-
 pub fn load_map(commands: &mut Commands) {
+    //TODO find better way to handle this that also works on web
     let map = include_str!("../assets/maps/test_room.map");
     //let file = File::open("assets/maps/test_room.map").unwrap();
     //let reader = BufReader::new(map);

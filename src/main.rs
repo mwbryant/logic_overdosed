@@ -50,6 +50,8 @@ fn main() {
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
         .add_system(match_render_to_screen_size)
+        .add_system(toggle_chromatic)
+        .add_system(toggle_distort)
         .add_plugin(PlayerPlugin)
         .add_plugin(MapPlugin)
         .add_plugin(ArtPlugin);
@@ -65,20 +67,52 @@ fn match_render_to_screen_size(
     windows: Query<&Window>,
 ) {
     let window = windows.single();
-    let mut texture = texture.single_mut();
-    texture.scale.x = window.resolution.width() / WIDTH;
-    texture.scale.y = window.resolution.height() / HEIGHT;
+    for mut texture in &mut texture {
+        texture.scale.x = window.resolution.width() / WIDTH;
+        texture.scale.y = window.resolution.height() / HEIGHT;
+    }
+}
+
+fn toggle_chromatic(
+    mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::P) {
+        for mut visible in &mut texture {
+            if *visible == Visibility::Hidden {
+                *visible = Visibility::Visible;
+            } else {
+                *visible = Visibility::Hidden;
+            }
+        }
+    }
+}
+
+fn toggle_distort(
+    mut texture: Query<&mut Visibility, With<Handle<DistortionMaterial>>>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::O) {
+        for mut visible in &mut texture {
+            if *visible == Visibility::Hidden {
+                *visible = Visibility::Visible;
+            } else {
+                *visible = Visibility::Hidden;
+            }
+        }
+    }
 }
 
 fn setup_camera(
     mut commands: Commands,
     windows: Query<&Window>,
+    assets: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut post_processing_materials: ResMut<Assets<PostProcessingMaterial>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut chromatic_materials: ResMut<Assets<ChromaticAbrasionMaterial>>,
+    mut distort_materials: ResMut<Assets<DistortionMaterial>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    // This assumes we only have a single window
     let window = windows.single();
 
     let size = Extent3d {
@@ -87,7 +121,6 @@ fn setup_camera(
         ..default()
     };
 
-    // This is the texture that will be rendered to.
     let mut image = Image {
         texture_descriptor: TextureDescriptor {
             label: None,
@@ -104,7 +137,6 @@ fn setup_camera(
         ..default()
     };
 
-    // fill image.data with zeroes
     image.resize(size);
 
     let image_handle = images.add(image);
@@ -116,28 +148,26 @@ fn setup_camera(
     camera.camera.target = RenderTarget::Image(image_handle.clone());
 
     // Main camera, first to render
-    commands.spawn((
-        camera,
-        // Disable UI rendering for the first pass camera. This prevents double rendering of UI at
-        // the cost of rendering the UI without any post processing effects.
-        UiCameraConfig { show_ui: false },
-    ));
+    commands.spawn((camera, UiCameraConfig { show_ui: false }));
 
-    // This specifies the layer used for the post processing camera, which will be attached to the post processing camera and 2d quad.
     let post_processing_pass_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
 
     let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(WIDTH, HEIGHT))));
 
-    // This material has the texture that has been rendered.
-    let material_handle = post_processing_materials.add(PostProcessingMaterial {
-        source_image: image_handle,
+    let chromatic_handle = chromatic_materials.add(ChromaticAbrasionMaterial {
+        source_image: image_handle.clone(),
     });
 
-    // Post processing 2d quad, with material using the render texture done by the main camera, with a custom shader.
+    let distort_handle = distort_materials.add(DistortionMaterial {
+        source_image: image_handle.clone(),
+        distortion_image: assets.load("distortion.png"),
+        strength: 0.22,
+    });
+
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: quad_handle.into(),
-            material: material_handle,
+            mesh: quad_handle.clone().into(),
+            material: chromatic_handle,
             transform: Transform {
                 translation: Vec3::new(0.0, 0.0, 1.5),
                 ..default()
@@ -146,15 +176,49 @@ fn setup_camera(
         },
         PostProcessingQuad,
         post_processing_pass_layer,
-        Name::new("Post Processing"),
+        Name::new("Post Processing CA"),
     ));
 
-    // The post-processing pass camera.
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: distort_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 1.5),
+                ..default()
+            },
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Post Processing Distort"),
+    ));
+
+    let material_handle = materials.add(ColorMaterial {
+        texture: Some(image_handle),
+        ..default()
+    });
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.into(),
+            material: material_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 0.0),
+                ..default()
+            },
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Base Render"),
+    ));
+
     commands.spawn((
         Camera2dBundle {
             camera: Camera {
                 // renders after the first main camera which has default value: 0.
-                order: 1,
+                order: 999,
                 ..default()
             },
             ..Camera2dBundle::default()

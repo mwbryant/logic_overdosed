@@ -22,7 +22,7 @@ fn fragment(
         textureSample(texture, our_sampler, uv + vec2<f32>(offset_strength, -offset_strength)).r,
         textureSample(texture, our_sampler, uv + vec2<f32>(-offset_strength, 0.0)).g,
         textureSample(texture, our_sampler, uv + vec2<f32>(0.0, offset_strength)).b,
-        1.0
+        0.7
     );
 
     return output_color;
