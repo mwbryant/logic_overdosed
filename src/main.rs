@@ -1,4 +1,6 @@
-use bevy::{input::common_conditions::input_toggle_active, render::camera::ScalingMode};
+use bevy::{
+    core::Zeroable, input::common_conditions::input_toggle_active, render::camera::ScalingMode,
+};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
 use logic_overdosed::{comp_from_config, prelude::*};
@@ -78,8 +80,14 @@ fn player_control(
         }
         if !keyboard.pressed(KeyCode::A) && !keyboard.pressed(KeyCode::D) {
             //TODO time dependent slow down?
-            velocity.velocity.x +=
+            //FIXME gives the shakes
+            let deccel_amount =
                 -player_deccel * velocity.velocity.x.signum() * time.delta_seconds();
+            if velocity.velocity.x.abs() < deccel_amount.abs() {
+                velocity.velocity.x = 0.0;
+            } else {
+                velocity.velocity.x += deccel_amount
+            }
         }
 
         velocity.velocity.x = velocity
@@ -122,14 +130,46 @@ fn player_update(
     }
 }
 
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+
+fn load_map(commands: &mut Commands) {
+    let file = File::open("assets/maps/test_room.map").unwrap();
+    let reader = BufReader::new(file);
+
+    let mut lines: Vec<String> = reader.lines().map(|l| l.unwrap()).collect();
+
+    lines.reverse();
+
+    for (y, line) in lines.iter().enumerate() {
+        for (x, c) in line.chars().enumerate() {
+            if c == '#' {
+                spawn_hit_box(commands, Vec2::splat(1.0), Vec2::new(x as f32, y as f32));
+            }
+        }
+    }
+}
+
+fn spawn_hit_box(commands: &mut Commands, block_size: Vec2, bottom_left_position: Vec2) {
+    let half_size = block_size * Vec2::splat(16.0);
+    commands
+        .spawn(Collider::cuboid(half_size.x, half_size.y))
+        .insert(TransformBundle::from(Transform::from_xyz(
+            bottom_left_position.x * 32.0 + half_size.x,
+            bottom_left_position.y * 32.0 + half_size.y,
+            0.0,
+        )));
+}
+
 fn setup(mut commands: Commands, assets: Res<AssetServer>) {
     let mut camera = Camera2dBundle::default();
     camera.projection.scaling_mode = ScalingMode::FixedVertical(HEIGHT);
-
+    camera.transform.translation.x = 320.0;
+    camera.transform.translation.y = 240.0;
     commands.spawn(camera);
 
     commands.spawn((
-        CharacterBundle::new(Vec3::new(-3.0, 0.0, CHARACTER_Z), Character::Player),
+        CharacterBundle::new(Vec3::new(240.0, 240.0, CHARACTER_Z), Character::Player),
         RigidBody::KinematicPositionBased,
         Collider::capsule(Vec2::new(0.0, -6.3), Vec2::new(0.0, 2.5), 20.0 / 2.0),
         PlayerVelocity {
@@ -140,16 +180,20 @@ fn setup(mut commands: Commands, assets: Res<AssetServer>) {
         Name::new("Player"),
     ));
 
+    load_map(&mut commands);
+    //spawn_hit_box(&mut commands, Vec2::new(20.0, 3.0), Vec2::ZERO);
+
     commands.spawn((
         SpriteBundle {
             sprite: Sprite { ..default() },
             texture: assets.load("background_1.png"),
-            transform: Transform::from_xyz(0.0, 0.0, BACKGROUND_Z),
+            transform: Transform::from_xyz(320.0, 240.0, BACKGROUND_Z),
             ..default()
         },
         Name::new("Background"),
     ));
 
+    /*
     commands
         .spawn(Collider::cuboid(500.0, 50.0))
         .insert(TransformBundle::from(Transform::from_xyz(0.0, -100.0, 0.0)));
@@ -169,6 +213,7 @@ fn setup(mut commands: Commands, assets: Res<AssetServer>) {
     commands
         .spawn(Collider::cuboid(16.0, 16.0))
         .insert(TransformBundle::from(Transform::from_xyz(16.0, 64.0, 0.0)));
+    */
 
     commands.spawn((
         SpriteBundle {
