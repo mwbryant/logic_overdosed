@@ -49,6 +49,7 @@ fn main() {
         .add_startup_system(setup)
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
+        .add_startup_system(spawn_potion)
         .add_system(match_render_to_screen_size)
         .add_system(toggle_chromatic)
         .add_system(toggle_distort)
@@ -57,6 +58,22 @@ fn main() {
         .add_plugin(ArtPlugin);
 
     app.run();
+}
+
+fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
+    commands.spawn((
+        SpriteBundle {
+            transform: Transform::from_xyz(380.0, 130.0, 900.0),
+            texture: assets.load("potion.png"),
+            ..default()
+        },
+        AnimatedSpriteStrip {
+            current_index: 0,
+            frames: (0..16).collect(),
+            frame_timer: Timer::from_seconds(0.05, TimerMode::Repeating),
+            sprite_size: Vec2::splat(32.0),
+        },
+    ));
 }
 
 #[derive(Component)]
@@ -312,7 +329,7 @@ fn setup(
 
     commands
         .spawn((
-            CharacterBundle::new(Vec3::new(240.0, 240.0, CHARACTER_Z), Character::Player),
+            CharacterBundle::new(Vec3::new(30.0, 120.0, CHARACTER_Z), Character::Player),
             RigidBody::KinematicPositionBased,
             //Collider::capsule(Vec2::new(0.0, -6.3), Vec2::new(0.0, 2.5), 20.0 / 2.0),
             Collider::cuboid(17.0 / 2.0, 28.0 / 2.0),

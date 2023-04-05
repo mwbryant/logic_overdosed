@@ -2,6 +2,7 @@ mod animation;
 mod fade_in;
 mod particles;
 mod post_processing;
+mod sprite_animation;
 pub mod sprite_sheets;
 use serde::{Deserialize, Serialize};
 pub use sprite_sheets::*;
@@ -15,6 +16,7 @@ pub use post_processing::*;
 use self::animation::AnimationPlugin;
 use self::fade_in::FadeInPlugin;
 use self::particles::ParticlePlugin;
+use self::sprite_animation::SpriteAnimationPlugin;
 
 pub struct ArtPlugin;
 
@@ -23,6 +25,7 @@ impl Plugin for ArtPlugin {
         app.add_plugin(SpriteSheetPlugin)
             .add_plugin(ParticlePlugin)
             .add_plugin(AnimationPlugin)
+            .add_plugin(SpriteAnimationPlugin)
             .add_plugin(FadeInPlugin)
             .add_plugin(PostProcessingPlugin)
             .register_type::<Icon>()
@@ -34,6 +37,15 @@ impl Plugin for ArtPlugin {
             .register_type::<RotatingParticle>()
             .register_type::<Character>();
     }
+}
+
+#[derive(Component, Default, Reflect, Clone)]
+#[reflect(Component)]
+pub struct AnimatedSpriteStrip {
+    pub current_index: usize,
+    pub frames: Vec<usize>,
+    pub frame_timer: Timer,
+    pub sprite_size: Vec2,
 }
 
 #[derive(Reflect)]
