@@ -17,16 +17,19 @@ pub struct PlayerVelocity {
 }
 
 #[derive(Component)]
-pub struct PlayerParticles;
+pub struct PlayerFeetParticles;
+
+#[derive(Component)]
+pub struct PlayerHeadParticles;
 
 fn player_particles(
     player: Query<(&PlayerVelocity, &KinematicCharacterControllerOutput)>,
-    mut player_particles: Query<&mut RectParticleEmitter, With<PlayerParticles>>,
+    mut player_particles: Query<&mut RectParticleEmitter, With<PlayerFeetParticles>>,
 ) {
     for (player, output) in &player {
         let mut particles = player_particles.single_mut();
         if output.grounded {
-            particles.force_spawn = player.velocity.x.abs() as usize / 150;
+            particles.force_spawn = player.velocity.x.abs() as usize / 180;
         }
     }
 }
@@ -94,11 +97,14 @@ fn player_control(
 
 fn player_jump(
     mut controllers: Query<(&KinematicCharacterControllerOutput, &mut PlayerVelocity)>,
+    mut player_particles: Query<&mut RectParticleEmitter, With<PlayerHeadParticles>>,
     keyboard: Res<Input<KeyCode>>,
 ) {
     let jump_strength = 320.0;
     for (controller, mut velocity) in controllers.iter_mut() {
         if controller.desired_translation.y - controller.effective_translation.y > 0.1 {
+            let mut particles = player_particles.single_mut();
+            particles.force_spawn = 6;
             velocity.velocity.y = -0.1;
         }
         if (controller.desired_translation.x - controller.effective_translation.x).abs() > 0.1 {

@@ -6,7 +6,7 @@ impl Plugin for MapPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
-pub fn load_map(commands: &mut Commands) {
+pub fn load_map(commands: &mut Commands, assets: &Res<AssetServer>) {
     //TODO find better way to handle this that also works on web
     let map = include_str!("../assets/maps/test_room.map");
     //let file = File::open("assets/maps/test_room.map").unwrap();
@@ -14,11 +14,17 @@ pub fn load_map(commands: &mut Commands) {
 
     let mut lines: Vec<String> = map.lines().map(|l| l.to_string()).collect();
 
+    let (map_file, lines) = lines.split_first_mut().unwrap();
+
     lines.reverse();
 
     //TODO cleanup this gross logic
+    let mut max_x = 0;
+    let max_y = lines.len();
     let mut boxes_to_spawn = Vec::new();
+
     for (y, line) in lines.iter().enumerate() {
+        max_x = line.len();
         let mut in_run = false;
         let mut run_start = 0;
         for (x, c) in line.chars().enumerate() {
@@ -50,6 +56,20 @@ pub fn load_map(commands: &mut Commands) {
             Vec2::new(x as f32, y as f32),
         );
     }
+
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite { ..default() },
+            texture: assets.load(map_file.to_string()),
+            transform: Transform::from_xyz(
+                (32.0 * max_x as f32) / 2.0,
+                (32.0 * max_y as f32) / 2.0,
+                BACKGROUND_Z,
+            ),
+            ..default()
+        },
+        Name::new("Background"),
+    ));
 }
 
 fn spawn_hit_box(commands: &mut Commands, block_size: Vec2, bottom_left_position: Vec2) {

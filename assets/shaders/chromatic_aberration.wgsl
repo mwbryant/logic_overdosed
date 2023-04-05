@@ -19,9 +19,9 @@ fn fragment(
 
     // Sample each color channel with an arbitrary shift
     var output_color = vec4<f32>(
-        textureSample(texture, our_sampler, uv + vec2<f32>(offset_strength, -offset_strength)).r,
-        textureSample(texture, our_sampler, uv + vec2<f32>(-offset_strength, 0.0)).g,
-        textureSample(texture, our_sampler, uv + vec2<f32>(0.0, offset_strength)).b,
+        textureSample(texture, our_sampler, uv + vec2<f32>(offset_strength* sin(globals.time * 0.11 - 2.54), -offset_strength* sin(globals.time * 0.33 - 34.54))).r,
+        textureSample(texture, our_sampler, uv + vec2<f32>(-offset_strength * sin(globals.time * 0.33 - 324.54), 0.0)).g,
+        textureSample(texture, our_sampler, uv + vec2<f32>(0.0, offset_strength * sin(globals.time * 0.75))).b,
         0.7
     );
 

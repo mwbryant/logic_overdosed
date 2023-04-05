@@ -92,6 +92,7 @@ pub struct FallingParticle {
 #[derive(Component, Clone, Reflect)]
 pub struct RadialParticle {
     pub speed: f32,
+    pub direction: Vec2,
 }
 
 #[derive(Component, Clone, Reflect)]

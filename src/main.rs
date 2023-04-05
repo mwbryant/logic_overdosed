@@ -161,7 +161,7 @@ fn setup_camera(
     let distort_handle = distort_materials.add(DistortionMaterial {
         source_image: image_handle.clone(),
         distortion_image: assets.load("distortion.png"),
-        strength: 0.22,
+        strength: 0.045,
     });
 
     commands.spawn((
@@ -172,6 +172,7 @@ fn setup_camera(
                 translation: Vec3::new(0.0, 0.0, 1.5),
                 ..default()
             },
+            visibility: Visibility::Hidden,
             ..default()
         },
         PostProcessingQuad,
@@ -187,6 +188,7 @@ fn setup_camera(
                 translation: Vec3::new(0.0, 0.0, 1.5),
                 ..default()
             },
+            visibility: Visibility::Hidden,
             ..default()
         },
         PostProcessingQuad,
@@ -237,7 +239,45 @@ fn setup(
         TextureAtlas::from_grid(texture_handle, Vec2::new(32.0, 32.0), 1, 1, None, None);
     let particle_atlas = texture_atlases.add(texture_atlas);
 
-    let particle_emitter = spawn_new_rect_emitter(
+    let feet_particle_emitter = spawn_new_rect_emitter(
+        &mut commands,
+        ParticleDesc {
+            particle: Particle {
+                lifetime: Timer::from_seconds(0.4, TimerMode::Once),
+            },
+            sprite: SpriteSheetBundle {
+                sprite: TextureAtlasSprite {
+                    custom_size: Some(Vec2::splat(12.0)),
+                    ..default()
+                },
+                texture_atlas: particle_atlas,
+                ..default()
+            },
+            falling: Some(FallingParticle { speed: 12.0 }),
+            radial: Some(RadialParticle {
+                speed: 16.0,
+                direction: Vec2::ZERO,
+            }),
+            rotating: Some(RotatingParticle { speed: 24.0 }),
+            fading: Some(FadingParticle {}),
+        },
+        Vec2::new(0.0, -13.0),
+        Vec2::new(7.0, 3.0),
+        None,
+        1,
+        None,
+    );
+
+    commands
+        .entity(feet_particle_emitter)
+        .insert(PlayerFeetParticles);
+
+    let texture_handle = assets.load("particles.png");
+    let texture_atlas =
+        TextureAtlas::from_grid(texture_handle, Vec2::new(16.0, 16.0), 1, 1, None, None);
+    let particle_atlas = texture_atlases.add(texture_atlas);
+
+    let head_particle_emitter = spawn_new_rect_emitter(
         &mut commands,
         ParticleDesc {
             particle: Particle {
@@ -252,18 +292,23 @@ fn setup(
                 ..default()
             },
             falling: Some(FallingParticle { speed: 12.0 }),
-            radial: None,
-            rotating: Some(RotatingParticle { speed: 24.0 }),
+            radial: Some(RadialParticle {
+                speed: 14.0,
+                direction: Vec2::ZERO,
+            }),
+            rotating: Some(RotatingParticle { speed: 6.0 }),
             fading: Some(FadingParticle {}),
         },
-        Vec2::new(0.0, -13.0),
-        Vec2::new(3.0, 3.0),
+        Vec2::new(0.0, 13.0),
+        Vec2::new(16.0, 4.0),
         None,
         1,
         None,
     );
 
-    commands.entity(particle_emitter).insert(PlayerParticles);
+    commands
+        .entity(head_particle_emitter)
+        .insert(PlayerHeadParticles);
 
     commands
         .spawn((
@@ -278,19 +323,10 @@ fn setup(
             KinematicCharacterController::default(),
             Name::new("Player"),
         ))
-        .add_child(particle_emitter);
+        .add_child(head_particle_emitter)
+        .add_child(feet_particle_emitter);
 
-    load_map(&mut commands);
-
-    commands.spawn((
-        SpriteBundle {
-            sprite: Sprite { ..default() },
-            texture: assets.load("background_1.png"),
-            transform: Transform::from_xyz(320.0, 240.0, BACKGROUND_Z),
-            ..default()
-        },
-        Name::new("Background"),
-    ));
+    load_map(&mut commands, &assets);
 
     commands.spawn((
         SpriteBundle {

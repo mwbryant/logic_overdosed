@@ -102,7 +102,9 @@ fn spawn_particle(
         particle.insert(fading.clone());
     }
     if let Some(radial) = &emitter.desc.radial {
-        particle.insert(radial.clone());
+        let mut radial = radial.clone();
+        radial.direction = Vec2::new(x_offset, y_offset);
+        particle.insert(radial);
     }
     if let Some(rotating) = &emitter.desc.rotating {
         particle.insert(rotating.clone());
@@ -175,8 +177,8 @@ fn particles_radial(
     time: Res<Time>,
 ) {
     for (mut transform, radial) in &mut particles {
-        let direction = transform.translation.truncate().normalize();
-        transform.translation += (radial.speed * time.delta_seconds()) * direction.extend(0.0);
+        transform.translation +=
+            (radial.speed * time.delta_seconds()) * radial.direction.extend(0.0);
     }
 }
 
