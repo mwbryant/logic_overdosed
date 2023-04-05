@@ -20,6 +20,7 @@ pub struct PostProcessingPlugin;
 impl Plugin for PostProcessingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(Material2dPlugin::<ChromaticAbrasionMaterial>::default())
+            .add_plugin(Material2dPlugin::<WavyMaterial>::default())
             .add_plugin(Material2dPlugin::<DistortionMaterial>::default());
     }
 }
@@ -56,5 +57,19 @@ pub struct DistortionMaterial {
 impl Material2d for DistortionMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/distort.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "129ea159-a4fb-93a1-ab08-54871ea91252"]
+pub struct WavyMaterial {
+    #[texture(0)]
+    #[sampler(1)]
+    pub source_image: Handle<Image>,
+}
+
+impl Material2d for WavyMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/wavy.wgsl".into()
     }
 }

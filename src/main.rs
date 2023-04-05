@@ -53,11 +53,26 @@ fn main() {
         .add_system(match_render_to_screen_size)
         .add_system(toggle_chromatic)
         .add_system(toggle_distort)
+        .add_system(toggle_wavy)
+        .add_system(camera_updating)
         .add_plugin(PlayerPlugin)
         .add_plugin(MapPlugin)
         .add_plugin(ArtPlugin);
 
     app.run();
+}
+
+#[derive(Component)]
+pub struct MainCamera;
+
+fn camera_updating(
+    player: Query<&Transform, (With<PlayerVelocity>, Without<MainCamera>)>,
+    mut camera: Query<&mut Transform, With<MainCamera>>,
+) {
+    let player = player.single();
+    let mut camera = camera.single_mut();
+    camera.translation.x = player.translation.x;
+    camera.translation.x = camera.translation.x.clamp(WIDTH / 2.0, WIDTH * 2.5);
 }
 
 fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
@@ -120,6 +135,21 @@ fn toggle_distort(
     }
 }
 
+fn toggle_wavy(
+    mut texture: Query<&mut Visibility, With<Handle<WavyMaterial>>>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::I) {
+        for mut visible in &mut texture {
+            if *visible == Visibility::Hidden {
+                *visible = Visibility::Visible;
+            } else {
+                *visible = Visibility::Hidden;
+            }
+        }
+    }
+}
+
 fn setup_camera(
     mut commands: Commands,
     windows: Query<&Window>,
@@ -127,6 +157,7 @@ fn setup_camera(
     mut meshes: ResMut<Assets<Mesh>>,
     mut chromatic_materials: ResMut<Assets<ChromaticAbrasionMaterial>>,
     mut distort_materials: ResMut<Assets<DistortionMaterial>>,
+    mut wavy_materials: ResMut<Assets<WavyMaterial>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -165,13 +196,17 @@ fn setup_camera(
     camera.camera.target = RenderTarget::Image(image_handle.clone());
 
     // Main camera, first to render
-    commands.spawn((camera, UiCameraConfig { show_ui: false }));
+    commands.spawn((camera, MainCamera, UiCameraConfig { show_ui: false }));
 
     let post_processing_pass_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
 
     let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(WIDTH, HEIGHT))));
 
     let chromatic_handle = chromatic_materials.add(ChromaticAbrasionMaterial {
+        source_image: image_handle.clone(),
+    });
+
+    let wavy_handle = wavy_materials.add(WavyMaterial {
         source_image: image_handle.clone(),
     });
 
@@ -195,6 +230,22 @@ fn setup_camera(
         PostProcessingQuad,
         post_processing_pass_layer,
         Name::new("Post Processing CA"),
+    ));
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: wavy_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 5.5),
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Post Processing Wavy"),
     ));
 
     commands.spawn((
