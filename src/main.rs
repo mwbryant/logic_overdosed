@@ -1,21 +1,14 @@
 use bevy::{input::common_conditions::input_toggle_active, render::camera::ScalingMode};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use logic_overdosed::{comp_from_config, prelude::*};
+use logic_overdosed::prelude::*;
 
-use bevy::{
-    core_pipeline::clear_color::ClearColorConfig,
-    prelude::*,
-    reflect::TypeUuid,
-    render::{
-        camera::RenderTarget,
-        render_resource::{
-            AsBindGroup, Extent3d, ShaderRef, TextureDescriptor, TextureDimension, TextureFormat,
-            TextureUsages,
-        },
-        texture::BevyDefault,
-        view::RenderLayers,
+use bevy::render::{
+    camera::RenderTarget,
+    render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     },
-    sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
+    texture::BevyDefault,
+    view::RenderLayers,
 };
 
 fn main() {

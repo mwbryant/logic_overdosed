@@ -1,5 +1,3 @@
-use bevy::sprite::Anchor;
-
 use crate::prelude::*;
 
 pub struct SpriteSheetPlugin;
@@ -58,7 +56,7 @@ fn setup_spritesheet_maps(
 
     commands.insert_resource(SpriteSheetMaps {
         character_atlas,
-        icon_atlas,
+        _icon_atlas: icon_atlas,
         characters,
         icons,
     });

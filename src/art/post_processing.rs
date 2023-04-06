@@ -1,16 +1,9 @@
 use crate::prelude::*;
 use bevy::{
-    core_pipeline::clear_color::ClearColorConfig,
     prelude::*,
     reflect::TypeUuid,
     render::{
-        camera::RenderTarget,
-        pipelined_rendering::MainToRenderAppSender,
-        render_resource::{
-            AsBindGroup, Extent3d, ShaderRef, TextureDescriptor, TextureDimension, TextureFormat,
-            TextureUsages,
-        },
-        texture::BevyDefault,
+        render_resource::{AsBindGroup, ShaderRef},
         view::RenderLayers,
     },
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
@@ -20,7 +13,7 @@ pub struct PostProcessingPlugin;
 
 impl Plugin for PostProcessingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(spawn_post_processing_textures.in_base_set(StartupSet::PostStartup))
+        app.add_startup_system(spawn_post_processing_textures.in_base_set(StartupSet::PostStartup))
             .add_system(match_render_to_screen_size)
             .add_system(toggle_chromatic)
             .add_system(toggle_distort)

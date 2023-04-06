@@ -140,7 +140,7 @@ fn particle_emitter_spawn(
             spawn_particle(
                 &mut commands,
                 &parents,
-                &mut emitter,
+                &emitter,
                 emitter_transform,
                 &mut rng,
             )

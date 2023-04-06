@@ -26,11 +26,11 @@ pub struct PlayerHeadParticles;
 fn player_pickups(
     mut commands: Commands,
     sensors: Query<&Name, With<Sensor>>,
-    mut player: Query<(&mut PlayerVelocity, &Transform), With<PlayerVelocity>>,
+    player: Query<(&mut PlayerVelocity, &Transform), With<PlayerVelocity>>,
     rapier_context: Res<RapierContext>,
     mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
 ) {
-    for (mut player, transform) in &player {
+    for (_player, transform) in &player {
         let shape = Collider::cuboid(15.0, 15.0);
         let shape_pos = transform.translation.truncate();
         let filter = QueryFilter::default();
