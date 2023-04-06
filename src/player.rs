@@ -6,6 +6,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems((player_gravity, player_jump, player_control, player_update).chain())
             .add_system(player_particles)
+            .add_system(player_pickups)
             .add_system(player_animation);
     }
 }
@@ -21,6 +22,32 @@ pub struct PlayerFeetParticles;
 
 #[derive(Component)]
 pub struct PlayerHeadParticles;
+
+fn player_pickups(
+    mut commands: Commands,
+    sensors: Query<&Name, With<Sensor>>,
+    mut player: Query<(&mut PlayerVelocity, &Transform), With<PlayerVelocity>>,
+    rapier_context: Res<RapierContext>,
+    mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
+) {
+    for (mut player, transform) in &player {
+        let shape = Collider::cuboid(15.0, 15.0);
+        let shape_pos = transform.translation.truncate();
+        let filter = QueryFilter::default();
+
+        rapier_context.intersections_with_shape(shape_pos, 0.0, &shape, filter, |entity| {
+            if let Ok(sensors) = sensors.get(entity) {
+                info!("Hit {:?} {:?}", entity, sensors);
+                for mut visible in &mut texture {
+                    *visible = Visibility::Visible;
+                }
+                commands.entity(entity).despawn_recursive();
+            }
+            //XXX what does this do...
+            true
+        });
+    }
+}
 
 fn player_particles(
     player: Query<(&PlayerVelocity, &KinematicCharacterControllerOutput)>,

@@ -18,10 +18,6 @@ use bevy::{
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
 };
 
-pub const WIDTH: f32 = 640.0;
-pub const HEIGHT: f32 = 480.0;
-pub const RESOLUTION: f32 = WIDTH / HEIGHT;
-
 fn main() {
     let mut app = App::new();
 
@@ -46,14 +42,10 @@ fn main() {
         )
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(50.0))
         .add_plugin(RapierDebugRenderPlugin::default())
-        .add_startup_system(setup)
+        .add_startup_system(setup_player)
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
         .add_startup_system(spawn_potion)
-        .add_system(match_render_to_screen_size)
-        .add_system(toggle_chromatic)
-        .add_system(toggle_distort)
-        .add_system(toggle_wavy)
         .add_system(camera_updating)
         .add_plugin(PlayerPlugin)
         .add_plugin(MapPlugin)
@@ -88,77 +80,15 @@ fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
             frame_timer: Timer::from_seconds(0.05, TimerMode::Repeating),
             sprite_size: Vec2::splat(32.0),
         },
+        Collider::cuboid(10.0, 10.0),
+        Sensor,
+        Name::new("Potion"),
     ));
-}
-
-#[derive(Component)]
-pub struct PostProcessingQuad;
-
-fn match_render_to_screen_size(
-    mut texture: Query<&mut Transform, With<PostProcessingQuad>>,
-    windows: Query<&Window>,
-) {
-    let window = windows.single();
-    for mut texture in &mut texture {
-        texture.scale.x = window.resolution.width() / WIDTH;
-        texture.scale.y = window.resolution.height() / HEIGHT;
-    }
-}
-
-fn toggle_chromatic(
-    mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
-    keyboard: Res<Input<KeyCode>>,
-) {
-    if keyboard.just_pressed(KeyCode::P) {
-        for mut visible in &mut texture {
-            if *visible == Visibility::Hidden {
-                *visible = Visibility::Visible;
-            } else {
-                *visible = Visibility::Hidden;
-            }
-        }
-    }
-}
-
-fn toggle_distort(
-    mut texture: Query<&mut Visibility, With<Handle<DistortionMaterial>>>,
-    keyboard: Res<Input<KeyCode>>,
-) {
-    if keyboard.just_pressed(KeyCode::O) {
-        for mut visible in &mut texture {
-            if *visible == Visibility::Hidden {
-                *visible = Visibility::Visible;
-            } else {
-                *visible = Visibility::Hidden;
-            }
-        }
-    }
-}
-
-fn toggle_wavy(
-    mut texture: Query<&mut Visibility, With<Handle<WavyMaterial>>>,
-    keyboard: Res<Input<KeyCode>>,
-) {
-    if keyboard.just_pressed(KeyCode::I) {
-        for mut visible in &mut texture {
-            if *visible == Visibility::Hidden {
-                *visible = Visibility::Visible;
-            } else {
-                *visible = Visibility::Hidden;
-            }
-        }
-    }
 }
 
 fn setup_camera(
     mut commands: Commands,
     windows: Query<&Window>,
-    assets: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut chromatic_materials: ResMut<Assets<ChromaticAbrasionMaterial>>,
-    mut distort_materials: ResMut<Assets<DistortionMaterial>>,
-    mut wavy_materials: ResMut<Assets<WavyMaterial>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     let window = windows.single();
@@ -195,94 +125,11 @@ fn setup_camera(
     camera.transform.translation.y = 240.0;
     camera.camera.target = RenderTarget::Image(image_handle.clone());
 
-    // Main camera, first to render
     commands.spawn((camera, MainCamera, UiCameraConfig { show_ui: false }));
 
+    commands.insert_resource(MainRender(image_handle));
+
     let post_processing_pass_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
-
-    let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(WIDTH, HEIGHT))));
-
-    let chromatic_handle = chromatic_materials.add(ChromaticAbrasionMaterial {
-        source_image: image_handle.clone(),
-    });
-
-    let wavy_handle = wavy_materials.add(WavyMaterial {
-        source_image: image_handle.clone(),
-    });
-
-    let distort_handle = distort_materials.add(DistortionMaterial {
-        source_image: image_handle.clone(),
-        distortion_image: assets.load("distortion.png"),
-        strength: 0.045,
-    });
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: quad_handle.clone().into(),
-            material: chromatic_handle,
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 1.5),
-                ..default()
-            },
-            visibility: Visibility::Hidden,
-            ..default()
-        },
-        PostProcessingQuad,
-        post_processing_pass_layer,
-        Name::new("Post Processing CA"),
-    ));
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: quad_handle.clone().into(),
-            material: wavy_handle,
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 5.5),
-                ..default()
-            },
-            visibility: Visibility::Hidden,
-            ..default()
-        },
-        PostProcessingQuad,
-        post_processing_pass_layer,
-        Name::new("Post Processing Wavy"),
-    ));
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: quad_handle.clone().into(),
-            material: distort_handle,
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 1.5),
-                ..default()
-            },
-            visibility: Visibility::Hidden,
-            ..default()
-        },
-        PostProcessingQuad,
-        post_processing_pass_layer,
-        Name::new("Post Processing Distort"),
-    ));
-
-    let material_handle = materials.add(ColorMaterial {
-        texture: Some(image_handle),
-        ..default()
-    });
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: quad_handle.into(),
-            material: material_handle,
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 0.0),
-                ..default()
-            },
-            ..default()
-        },
-        PostProcessingQuad,
-        post_processing_pass_layer,
-        Name::new("Base Render"),
-    ));
 
     commands.spawn((
         Camera2dBundle {
@@ -297,7 +144,7 @@ fn setup_camera(
     ));
 }
 
-fn setup(
+fn setup_player(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
@@ -388,7 +235,10 @@ fn setup(
                 velocity: Vec2::ZERO,
                 last_grounded: 0,
             },
-            KinematicCharacterController::default(),
+            KinematicCharacterController {
+                filter_flags: QueryFilterFlags::EXCLUDE_SENSORS,
+                ..default()
+            },
             Name::new("Player"),
         ))
         .add_child(head_particle_emitter)
@@ -396,6 +246,7 @@ fn setup(
 
     load_map(&mut commands, &assets);
 
+    /*
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
@@ -407,4 +258,5 @@ fn setup(
         },
         Name::new("WhiteDot"),
     ));
+    */
 }

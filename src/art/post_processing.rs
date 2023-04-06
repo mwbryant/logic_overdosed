@@ -5,6 +5,7 @@ use bevy::{
     reflect::TypeUuid,
     render::{
         camera::RenderTarget,
+        pipelined_rendering::MainToRenderAppSender,
         render_resource::{
             AsBindGroup, Extent3d, ShaderRef, TextureDescriptor, TextureDimension, TextureFormat,
             TextureUsages,
@@ -19,10 +20,171 @@ pub struct PostProcessingPlugin;
 
 impl Plugin for PostProcessingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(Material2dPlugin::<ChromaticAbrasionMaterial>::default())
+        app.add_system(spawn_post_processing_textures.in_base_set(StartupSet::PostStartup))
+            .add_system(match_render_to_screen_size)
+            .add_system(toggle_chromatic)
+            .add_system(toggle_distort)
+            .add_system(toggle_wavy)
+            .add_plugin(Material2dPlugin::<ChromaticAbrasionMaterial>::default())
             .add_plugin(Material2dPlugin::<WavyMaterial>::default())
             .add_plugin(Material2dPlugin::<DistortionMaterial>::default());
     }
+}
+
+fn match_render_to_screen_size(
+    mut texture: Query<&mut Transform, With<PostProcessingQuad>>,
+    windows: Query<&Window>,
+) {
+    let window = windows.single();
+    for mut texture in &mut texture {
+        texture.scale.x = window.resolution.width() / WIDTH;
+        texture.scale.y = window.resolution.height() / HEIGHT;
+    }
+}
+
+fn toggle_chromatic(
+    mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::P) {
+        for mut visible in &mut texture {
+            if *visible == Visibility::Hidden {
+                *visible = Visibility::Visible;
+            } else {
+                *visible = Visibility::Hidden;
+            }
+        }
+    }
+}
+
+fn toggle_distort(
+    mut texture: Query<&mut Visibility, With<Handle<DistortionMaterial>>>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::O) {
+        for mut visible in &mut texture {
+            if *visible == Visibility::Hidden {
+                *visible = Visibility::Visible;
+            } else {
+                *visible = Visibility::Hidden;
+            }
+        }
+    }
+}
+
+fn toggle_wavy(
+    mut texture: Query<&mut Visibility, With<Handle<WavyMaterial>>>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::I) {
+        for mut visible in &mut texture {
+            if *visible == Visibility::Hidden {
+                *visible = Visibility::Visible;
+            } else {
+                *visible = Visibility::Hidden;
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn spawn_post_processing_textures(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    image: Res<MainRender>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut chromatic_materials: ResMut<Assets<ChromaticAbrasionMaterial>>,
+    mut distort_materials: ResMut<Assets<DistortionMaterial>>,
+    mut wavy_materials: ResMut<Assets<WavyMaterial>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let post_processing_pass_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
+
+    let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(WIDTH, HEIGHT))));
+
+    let image_handle = image.0.clone();
+
+    let chromatic_handle = chromatic_materials.add(ChromaticAbrasionMaterial {
+        source_image: image_handle.clone(),
+    });
+
+    let wavy_handle = wavy_materials.add(WavyMaterial {
+        source_image: image_handle.clone(),
+    });
+
+    let distort_handle = distort_materials.add(DistortionMaterial {
+        source_image: image_handle.clone(),
+        distortion_image: assets.load("distortion.png"),
+        strength: 0.045,
+    });
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: chromatic_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 1.5),
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Post Processing CA"),
+    ));
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: wavy_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 5.5),
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Post Processing Wavy"),
+    ));
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: distort_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 1.5),
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Post Processing Distort"),
+    ));
+
+    let material_handle = materials.add(ColorMaterial {
+        texture: Some(image_handle),
+        ..default()
+    });
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.into(),
+            material: material_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 0.0),
+                ..default()
+            },
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Base Render"),
+    ));
 }
 
 /// Our custom post processing material

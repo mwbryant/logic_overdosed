@@ -39,6 +39,9 @@ impl Plugin for ArtPlugin {
     }
 }
 
+#[derive(Component)]
+pub struct PostProcessingQuad;
+
 #[derive(Component, Default, Reflect, Clone)]
 #[reflect(Component)]
 pub struct AnimatedSpriteStrip {

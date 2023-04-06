@@ -5,6 +5,10 @@ mod player;
 mod utils;
 
 pub mod prelude {
+    pub const WIDTH: f32 = 640.0;
+    pub const HEIGHT: f32 = 480.0;
+    pub const RESOLUTION: f32 = WIDTH / HEIGHT;
+
     pub use crate::art::*;
     pub use crate::map::*;
     pub use crate::player::*;
@@ -21,6 +25,9 @@ pub mod prelude {
     pub const PARTICLE_Z: f32 = 750.0;
     pub const ICON_Z: f32 = 850.0;
     pub const WORLD_UI_Z: f32 = 999.0;
+
+    #[derive(Resource)]
+    pub struct MainRender(pub Handle<Image>);
 
     #[derive(States, PartialEq, Eq, Debug, Default, Clone, Hash)]
     pub enum GameState {
