@@ -6,6 +6,16 @@ impl Plugin for MapPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
+fn spawn_exit(commands: &mut Commands, translation: Vec2) {
+    commands.spawn((
+        Collider::cuboid(32.0, 32.0),
+        Sensor,
+        Door,
+        Name::new("Exit"),
+        SpatialBundle::from_transform(Transform::from_translation(translation.extend(0.0))),
+    ));
+}
+
 pub fn load_map(commands: &mut Commands, assets: &Res<AssetServer>) {
     //TODO find better way to handle this that also works on web
     let map = include_str!("../assets/maps/test_room.map");
@@ -40,6 +50,12 @@ pub fn load_map(commands: &mut Commands, assets: &Res<AssetServer>) {
                     in_run = false;
                     boxes_to_spawn.push((run_start, y, x - run_start));
                 }
+            }
+            if c == 'E' {
+                spawn_exit(
+                    commands,
+                    Vec2::new((x + 1) as f32 * 32.0, (y + 1) as f32 * 32.0),
+                );
             }
         }
         //Cleanup ongoing run

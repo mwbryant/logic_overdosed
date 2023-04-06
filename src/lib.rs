@@ -36,4 +36,10 @@ pub mod prelude {
         Platforming,
         Cutscene,
     }
+
+    #[derive(Component)]
+    pub struct Potion;
+
+    #[derive(Component)]
+    pub struct Door;
 }

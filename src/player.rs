@@ -35,7 +35,8 @@ pub struct PlayerHeadParticles;
 
 fn player_pickups(
     mut commands: Commands,
-    sensors: Query<&Name, With<Sensor>>,
+    sensors: Query<&Name, (With<Sensor>, With<Potion>)>,
+    exits: Query<&Name, (With<Sensor>, With<Door>, Without<Potion>)>,
     mut player: Query<(&mut PlayerStats, &Transform), With<PlayerVelocity>>,
     rapier_context: Res<RapierContext>,
     mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
@@ -52,6 +53,10 @@ fn player_pickups(
                 for mut visible in &mut texture {
                     *visible = Visibility::Visible;
                 }
+                commands.entity(entity).despawn_recursive();
+            }
+            if let Ok(door) = exits.get(entity) {
+                info!("Hit Door {:?} {:?}", entity, door);
                 commands.entity(entity).despawn_recursive();
             }
             //XXX what does this do...

@@ -57,7 +57,7 @@ fn camera_updating(
     let player = player.single();
     let mut camera = camera.single_mut();
     camera.translation.x = player.translation.x;
-    camera.translation.x = camera.translation.x.clamp(WIDTH / 2.0, WIDTH * 2.5);
+    camera.translation.x = camera.translation.x.clamp(WIDTH / 2.0, WIDTH * 3.5);
 }
 
 fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
@@ -75,6 +75,7 @@ fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
         },
         Collider::cuboid(10.0, 10.0),
         Sensor,
+        Potion,
         Name::new("Potion"),
     ));
 }
