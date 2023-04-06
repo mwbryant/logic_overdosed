@@ -114,7 +114,6 @@ fn spawn_post_processing_textures(
     let distort_handle = distort_materials.add(DistortionMaterial {
         source_image: image_handle.clone(),
         distortion_image: assets.load("distortion.png"),
-        strength: 0.045,
     });
 
     commands.spawn((
@@ -239,8 +238,6 @@ pub struct DistortionMaterial {
     #[texture(2)]
     #[sampler(3)]
     pub distortion_image: Handle<Image>,
-    #[uniform(4)]
-    pub strength: f32,
 }
 
 impl Material2d for DistortionMaterial {
