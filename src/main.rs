@@ -39,16 +39,15 @@ fn main() {
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
         .add_startup_system(spawn_potion)
+        .add_startup_system(setup_dialog)
         .add_system(camera_updating)
         .add_plugin(PlayerPlugin)
+        .add_plugin(DialogPlugin)
         .add_plugin(MapPlugin)
         .add_plugin(ArtPlugin);
 
     app.run();
 }
-
-#[derive(Component)]
-pub struct MainCamera;
 
 fn camera_updating(
     player: Query<&Transform, (With<PlayerVelocity>, Without<MainCamera>)>,
@@ -78,6 +77,9 @@ fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
         Potion,
         Name::new("Potion"),
     ));
+}
+fn setup_dialog(mut commands: Commands, assets: Res<AssetServer>) {
+    spawn_dialog_box(&mut commands, &assets, "Oof my head hurts, where am I?  Why am I covered in all these bumps...  What's going on?  I need to find some medicine");
 }
 
 fn setup_camera(

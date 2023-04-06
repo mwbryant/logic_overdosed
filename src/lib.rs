@@ -1,5 +1,6 @@
 #![allow(clippy::type_complexity)]
 mod art;
+mod cutscene;
 mod map;
 mod player;
 mod utils;
@@ -10,6 +11,7 @@ pub mod prelude {
     pub const RESOLUTION: f32 = WIDTH / HEIGHT;
 
     pub use crate::art::*;
+    pub use crate::cutscene::*;
     pub use crate::map::*;
     pub use crate::player::*;
     pub use crate::utils::*;
@@ -31,11 +33,13 @@ pub mod prelude {
 
     #[derive(States, PartialEq, Eq, Debug, Default, Clone, Hash)]
     pub enum GameState {
-        #[default]
         Menu,
         Platforming,
+        #[default]
         Cutscene,
     }
+    #[derive(Component)]
+    pub struct MainCamera;
 
     #[derive(Component)]
     pub struct Potion;
