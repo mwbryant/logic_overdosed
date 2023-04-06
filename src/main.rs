@@ -16,10 +16,15 @@ fn main() {
 
     app.add_state::<GameState>()
         .insert_resource(StoryProgression {
-            marker: 0,
+            story_marker: 0,
             respawn_point: Vec3::new(55.0, 50.0, CHARACTER_Z),
             current_map: 0,
-            potion_spawns: vec![Vec2::new(380.0, 130.0)],
+            potion_spawns: vec![Vec2::new(380.0, 130.0), Vec2::new(380.0, 130.0)],
+            levels: vec![
+                //TODO find better way to handle this that also works on web
+                include_str!("../assets/maps/map_1.map").to_string(),
+                include_str!("../assets/maps/map_2.map").to_string(),
+            ],
         })
         .insert_resource(ClearColor(Color::BLACK))
         .add_plugins(
@@ -45,7 +50,7 @@ fn main() {
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
         .add_startup_system(spawn_potion)
-        .add_startup_system(setup_dialog)
+        .add_startup_system(setup_default_map)
         .add_system(camera_updating)
         .add_plugin(PlayerPlugin)
         .add_plugin(DialogPlugin)
@@ -84,7 +89,13 @@ fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
         Name::new("Potion"),
     ));
 }
-fn setup_dialog() {}
+fn setup_default_map(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    progression: Res<StoryProgression>,
+) {
+    load_map(&mut commands, &assets, &progression);
+}
 
 fn setup_camera(
     mut commands: Commands,
@@ -253,8 +264,6 @@ fn setup_player(
         ))
         .add_child(head_particle_emitter)
         .add_child(feet_particle_emitter);
-
-    load_map(&mut commands, &assets);
 
     /*
     commands.spawn((

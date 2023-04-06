@@ -6,19 +6,26 @@ impl Plugin for MapPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
+#[derive(Component)]
+pub struct MapEntity;
+
 fn spawn_exit(commands: &mut Commands, translation: Vec2) {
     commands.spawn((
         Collider::cuboid(32.0, 32.0),
         Sensor,
         Door,
+        MapEntity,
         Name::new("Exit"),
         SpatialBundle::from_transform(Transform::from_translation(translation.extend(0.0))),
     ));
 }
 
-pub fn load_map(commands: &mut Commands, assets: &Res<AssetServer>) {
-    //TODO find better way to handle this that also works on web
-    let map = include_str!("../assets/maps/test_room.map");
+pub fn load_map(
+    commands: &mut Commands,
+    assets: &Res<AssetServer>,
+    progression: &StoryProgression,
+) {
+    let map = &progression.levels[progression.current_map];
     //let file = File::open("assets/maps/test_room.map").unwrap();
     //let reader = BufReader::new(map);
 
@@ -87,6 +94,7 @@ pub fn load_map(commands: &mut Commands, assets: &Res<AssetServer>) {
             ),
             ..default()
         },
+        MapEntity,
         Name::new("Background"),
     ));
 }
@@ -100,5 +108,6 @@ fn spawn_hit_box(commands: &mut Commands, block_size: Vec2, bottom_left_position
             bottom_left_position.y * 32.0 + half_size.y,
             0.0,
         )))
+        .insert(MapEntity)
         .insert(Name::new("Hitbox"));
 }

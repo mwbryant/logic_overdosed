@@ -7,6 +7,7 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             (
                 player_respawn,
+                player_exit_level,
                 player_gravity,
                 player_jump,
                 player_control,
@@ -47,6 +48,9 @@ pub struct PlayerHeadParticles;
 #[derive(Component)]
 pub struct DeathFade;
 
+#[derive(Component)]
+pub struct ExitFade;
+
 fn player_death(
     mut commands: Commands,
     player: Query<&Transform, With<PlayerStats>>,
@@ -59,6 +63,31 @@ fn player_death(
     if player.translation.y < -64.0 {
         let fade = spawn_fadeout(&mut commands);
         commands.entity(fade).insert(DeathFade);
+    }
+}
+
+fn player_exit_level(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    mut player: Query<(&mut PlayerVelocity, &mut Transform), With<PlayerStats>>,
+    //TODO despawn on event with util system
+    map_entities: Query<Entity, With<MapEntity>>,
+    mut progression: ResMut<StoryProgression>,
+    fade: Query<&Fadeout, With<ExitFade>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if let Ok(fade) = fade.get_single() {
+        let (mut velocity, mut player) = player.single_mut();
+        velocity.velocity.x = 0.0;
+        if fade.fade_in_just_finished {
+            for map_ent in &map_entities {
+                commands.entity(map_ent).despawn_recursive();
+            }
+            progression.current_map += 1;
+            load_map(&mut commands, &assets, &progression);
+            player.translation = progression.respawn_point;
+            next_state.set(GameState::Cutscene);
+        }
     }
 }
 
@@ -102,6 +131,8 @@ fn player_pickups(
             }
             if let Ok(door) = exits.get(entity) {
                 info!("Hit Door {:?} {:?}", entity, door);
+                let fadeout = spawn_fadeout(&mut commands);
+                commands.entity(fadeout).insert(ExitFade);
                 commands.entity(entity).despawn_recursive();
             }
             //XXX what does this do...

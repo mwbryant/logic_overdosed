@@ -53,8 +53,8 @@ fn enter_cutscene(
     // include for wasm safety
     let lines = include_str!("../assets/plot.txt");
     let lines: Vec<String> = lines.lines().map(|l| l.to_string()).collect();
-    spawn_dialog_box(&mut commands, &assets, &lines[progression.marker]);
-    progression.marker += 1;
+    spawn_dialog_box(&mut commands, &assets, &lines[progression.story_marker]);
+    progression.story_marker += 1;
 }
 
 fn close_dialog(

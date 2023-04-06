@@ -49,9 +49,10 @@ pub mod prelude {
 
     #[derive(Resource, Default)]
     pub struct StoryProgression {
-        pub marker: usize,
-        pub respawn_point: Vec3,
+        pub story_marker: usize,
         pub current_map: usize,
+        pub respawn_point: Vec3,
         pub potion_spawns: Vec<Vec2>,
+        pub levels: Vec<String>,
     }
 }
