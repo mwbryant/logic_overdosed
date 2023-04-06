@@ -1,5 +1,3 @@
-use bevy::ui::update;
-
 use crate::prelude::*;
 
 #[derive(Component)]
