@@ -12,7 +12,21 @@ pub struct DialogPlugin;
 
 impl Plugin for DialogPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems((update_dialog_box, close_dialog));
+        app.add_systems((update_dialog_box, close_dialog))
+            .add_systems((show_blur, enter_cutscene).in_schedule(OnEnter(GameState::Cutscene)))
+            .add_system(hide_blur.in_schedule(OnExit(GameState::Cutscene)));
+    }
+}
+
+fn show_blur(mut texture: Query<&mut Visibility, With<Handle<BlurMaterial>>>) {
+    for mut visible in &mut texture {
+        *visible = Visibility::Visible;
+    }
+}
+
+fn hide_blur(mut texture: Query<&mut Visibility, With<Handle<BlurMaterial>>>) {
+    for mut visible in &mut texture {
+        *visible = Visibility::Hidden;
     }
 }
 
@@ -29,6 +43,18 @@ fn update_dialog_box(
         //https://github.com/bevyengine/bevy/issues/1490
         text.size.width = Val::Px(screen_width * 0.9 * 0.75 - 30.);
     }
+}
+
+fn enter_cutscene(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    mut progression: ResMut<StoryProgression>,
+) {
+    // include for wasm safety
+    let lines = include_str!("../assets/plot.txt");
+    let lines: Vec<String> = lines.lines().map(|l| l.to_string()).collect();
+    spawn_dialog_box(&mut commands, &assets, &lines[progression.marker]);
+    progression.marker += 1;
 }
 
 fn close_dialog(

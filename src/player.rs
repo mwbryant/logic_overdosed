@@ -4,10 +4,21 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems((player_gravity, player_jump, player_control, player_update).chain())
-            .add_system(player_particles)
-            .add_system(player_pickups)
-            .add_system(player_animation);
+        app.add_systems(
+            (
+                player_respawn,
+                player_gravity,
+                player_jump,
+                player_control,
+                player_update,
+                player_death,
+            )
+                .chain()
+                .in_set(OnUpdate(GameState::Platforming)),
+        )
+        .add_system(player_particles)
+        .add_system(player_pickups)
+        .add_system(player_animation);
     }
 }
 
@@ -33,6 +44,38 @@ pub struct PlayerFeetParticles;
 #[derive(Component)]
 pub struct PlayerHeadParticles;
 
+#[derive(Component)]
+pub struct DeathFade;
+
+fn player_death(
+    mut commands: Commands,
+    player: Query<&Transform, With<PlayerStats>>,
+    fade: Query<&DeathFade>,
+) {
+    if fade.iter().count() > 0 {
+        return;
+    }
+    let player = player.single();
+    if player.translation.y < -64.0 {
+        let fade = spawn_fadeout(&mut commands);
+        commands.entity(fade).insert(DeathFade);
+    }
+}
+
+fn player_respawn(
+    mut player: Query<(&mut PlayerVelocity, &mut Transform), With<PlayerStats>>,
+    progression: Res<StoryProgression>,
+    fade: Query<&Fadeout, With<DeathFade>>,
+) {
+    if let Ok(fade) = fade.get_single() {
+        if fade.fade_in_just_finished {
+            let (mut velocity, mut player) = player.single_mut();
+            player.translation = progression.respawn_point;
+            velocity.velocity = Vec2::ZERO;
+        }
+    }
+}
+
 fn player_pickups(
     mut commands: Commands,
     sensors: Query<&Name, (With<Sensor>, With<Potion>)>,
@@ -40,6 +83,7 @@ fn player_pickups(
     mut player: Query<(&mut PlayerStats, &Transform), With<PlayerVelocity>>,
     rapier_context: Res<RapierContext>,
     mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     for (mut stats, transform) in &mut player {
         let shape = Collider::cuboid(15.0, 15.0);
@@ -53,6 +97,7 @@ fn player_pickups(
                 for mut visible in &mut texture {
                     *visible = Visibility::Visible;
                 }
+                next_state.set(GameState::Cutscene);
                 commands.entity(entity).despawn_recursive();
             }
             if let Ok(door) = exits.get(entity) {

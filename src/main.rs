@@ -15,6 +15,12 @@ fn main() {
     let mut app = App::new();
 
     app.add_state::<GameState>()
+        .insert_resource(StoryProgression {
+            marker: 0,
+            respawn_point: Vec3::new(55.0, 50.0, CHARACTER_Z),
+            current_map: 0,
+            potion_spawns: vec![Vec2::new(380.0, 130.0)],
+        })
         .insert_resource(ClearColor(Color::BLACK))
         .add_plugins(
             DefaultPlugins
@@ -78,9 +84,7 @@ fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
         Name::new("Potion"),
     ));
 }
-fn setup_dialog(mut commands: Commands, assets: Res<AssetServer>) {
-    spawn_dialog_box(&mut commands, &assets, "Oof my head hurts, where am I?  Why am I covered in all these bumps...  What's going on?  I need to find some medicine");
-}
+fn setup_dialog() {}
 
 fn setup_camera(
     mut commands: Commands,
@@ -240,6 +244,7 @@ fn setup_player(
                 true_gravity: -1500.0,
                 player_accel: 600.0,
                 player_deccel: 450.0,
+                //player_max_velocity: 325.0,
                 player_max_velocity: 225.0,
                 jump_strength: 190.0,
                 //jump_strength: 320.0,

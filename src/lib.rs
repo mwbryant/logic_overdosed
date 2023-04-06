@@ -46,4 +46,12 @@ pub mod prelude {
 
     #[derive(Component)]
     pub struct Door;
+
+    #[derive(Resource, Default)]
+    pub struct StoryProgression {
+        pub marker: usize,
+        pub respawn_point: Vec3,
+        pub current_map: usize,
+        pub potion_spawns: Vec<Vec2>,
+    }
 }

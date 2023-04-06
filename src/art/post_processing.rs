@@ -20,6 +20,7 @@ impl Plugin for PostProcessingPlugin {
             .add_system(toggle_wavy)
             .add_plugin(Material2dPlugin::<ChromaticAbrasionMaterial>::default())
             .add_plugin(Material2dPlugin::<WavyMaterial>::default())
+            .add_plugin(Material2dPlugin::<BlurMaterial>::default())
             .add_plugin(Material2dPlugin::<DistortionMaterial>::default());
     }
 }
@@ -89,6 +90,7 @@ fn spawn_post_processing_textures(
     mut chromatic_materials: ResMut<Assets<ChromaticAbrasionMaterial>>,
     mut distort_materials: ResMut<Assets<DistortionMaterial>>,
     mut wavy_materials: ResMut<Assets<WavyMaterial>>,
+    mut blur_materials: ResMut<Assets<BlurMaterial>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let post_processing_pass_layer = RenderLayers::layer((RenderLayers::TOTAL_LAYERS - 1) as u8);
@@ -98,6 +100,10 @@ fn spawn_post_processing_textures(
     let image_handle = image.0.clone();
 
     let chromatic_handle = chromatic_materials.add(ChromaticAbrasionMaterial {
+        source_image: image_handle.clone(),
+    });
+
+    let blur_handle = blur_materials.add(BlurMaterial {
         source_image: image_handle.clone(),
     });
 
@@ -125,6 +131,22 @@ fn spawn_post_processing_textures(
         PostProcessingQuad,
         post_processing_pass_layer,
         Name::new("Post Processing CA"),
+    ));
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: blur_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 100.5),
+                ..default()
+            },
+            visibility: Visibility::Visible,
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Post Processing Blur"),
     ));
 
     commands.spawn((
@@ -180,11 +202,9 @@ fn spawn_post_processing_textures(
     ));
 }
 
-/// Our custom post processing material
 #[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "bc2f08eb-a0fb-43f1-a908-54871ea597d5"]
 pub struct ChromaticAbrasionMaterial {
-    /// In this example, this image will be the result of the main camera.
     #[texture(0)]
     #[sampler(1)]
     pub source_image: Handle<Image>,
@@ -193,6 +213,20 @@ pub struct ChromaticAbrasionMaterial {
 impl Material2d for ChromaticAbrasionMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/chromatic_aberration.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "4913fbab-a0fb-43f1-a908-54871ea19243"]
+pub struct BlurMaterial {
+    #[texture(0)]
+    #[sampler(1)]
+    pub source_image: Handle<Image>,
+}
+
+impl Material2d for BlurMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/blur.wgsl".into()
     }
 }
 
