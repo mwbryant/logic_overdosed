@@ -57,6 +57,9 @@ pub fn load_map(commands: &mut Commands, assets: &Res<AssetServer>) {
         );
     }
 
+    //Left wall
+    spawn_hit_box(commands, Vec2::new(1.0, 30.0), Vec2::new(-1.0, 0.0));
+
     commands.spawn((
         SpriteBundle {
             sprite: Sprite { ..default() },

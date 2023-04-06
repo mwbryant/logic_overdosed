@@ -18,6 +18,16 @@ pub struct PlayerVelocity {
 }
 
 #[derive(Component)]
+pub struct PlayerStats {
+    pub float_gravity: f32,
+    pub true_gravity: f32,
+    pub player_accel: f32,
+    pub player_deccel: f32,
+    pub player_max_velocity: f32,
+    pub jump_strength: f32,
+}
+
+#[derive(Component)]
 pub struct PlayerFeetParticles;
 
 #[derive(Component)]
@@ -26,11 +36,11 @@ pub struct PlayerHeadParticles;
 fn player_pickups(
     mut commands: Commands,
     sensors: Query<&Name, With<Sensor>>,
-    player: Query<(&mut PlayerVelocity, &Transform), With<PlayerVelocity>>,
+    mut player: Query<(&mut PlayerStats, &Transform), With<PlayerVelocity>>,
     rapier_context: Res<RapierContext>,
     mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
 ) {
-    for (_player, transform) in &player {
+    for (mut stats, transform) in &mut player {
         let shape = Collider::cuboid(15.0, 15.0);
         let shape_pos = transform.translation.truncate();
         let filter = QueryFilter::default();
@@ -38,6 +48,7 @@ fn player_pickups(
         rapier_context.intersections_with_shape(shape_pos, 0.0, &shape, filter, |entity| {
             if let Ok(sensors) = sensors.get(entity) {
                 info!("Hit {:?} {:?}", entity, sensors);
+                stats.jump_strength = 320.0;
                 for mut visible in &mut texture {
                     *visible = Visibility::Visible;
                 }
@@ -73,41 +84,36 @@ fn player_animation(mut player: Query<(&mut TextureAtlasSprite, &PlayerVelocity)
 }
 
 fn player_gravity(
-    mut player: Query<&mut PlayerVelocity>,
+    mut player: Query<(&mut PlayerVelocity, &PlayerStats)>,
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    let float_gravity = -450.0;
-    let true_gravity = -1500.0;
-    for mut velocity in player.iter_mut() {
+    for (mut velocity, stats) in player.iter_mut() {
         if keyboard.pressed(KeyCode::Space) {
-            velocity.velocity += Vec2::new(0.0, float_gravity * time.delta_seconds());
+            velocity.velocity += Vec2::new(0.0, stats.float_gravity * time.delta_seconds());
         } else {
-            velocity.velocity += Vec2::new(0.0, true_gravity * time.delta_seconds());
+            velocity.velocity += Vec2::new(0.0, stats.true_gravity * time.delta_seconds());
         }
     }
 }
 
 fn player_control(
-    mut player: Query<&mut PlayerVelocity>,
+    mut player: Query<(&mut PlayerVelocity, &PlayerStats)>,
     keyboard: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    let player_accel = 600.0;
-    let player_deccel = 450.0;
-    let player_max_velocity = 225.0;
-    for mut velocity in player.iter_mut() {
+    for (mut velocity, stats) in player.iter_mut() {
         if keyboard.pressed(KeyCode::A) {
-            velocity.velocity += Vec2::new(-player_accel * time.delta_seconds(), 0.0);
+            velocity.velocity += Vec2::new(-stats.player_accel * time.delta_seconds(), 0.0);
         }
         if keyboard.pressed(KeyCode::D) {
-            velocity.velocity += Vec2::new(player_accel * time.delta_seconds(), 0.0);
+            velocity.velocity += Vec2::new(stats.player_accel * time.delta_seconds(), 0.0);
         }
         if !keyboard.pressed(KeyCode::A) && !keyboard.pressed(KeyCode::D) {
             //TODO time dependent slow down?
             //FIXME gives the shakes
             let deccel_amount =
-                -player_deccel * velocity.velocity.x.signum() * time.delta_seconds();
+                -stats.player_deccel * velocity.velocity.x.signum() * time.delta_seconds();
             if velocity.velocity.x.abs() < deccel_amount.abs() {
                 velocity.velocity.x = 0.0;
             } else {
@@ -118,17 +124,20 @@ fn player_control(
         velocity.velocity.x = velocity
             .velocity
             .x
-            .clamp(-player_max_velocity, player_max_velocity);
+            .clamp(-stats.player_max_velocity, stats.player_max_velocity);
     }
 }
 
 fn player_jump(
-    mut controllers: Query<(&KinematicCharacterControllerOutput, &mut PlayerVelocity)>,
+    mut controllers: Query<(
+        &KinematicCharacterControllerOutput,
+        &mut PlayerVelocity,
+        &PlayerStats,
+    )>,
     mut player_particles: Query<&mut RectParticleEmitter, With<PlayerHeadParticles>>,
     keyboard: Res<Input<KeyCode>>,
 ) {
-    let jump_strength = 320.0;
-    for (controller, mut velocity) in controllers.iter_mut() {
+    for (controller, mut velocity, stats) in controllers.iter_mut() {
         if controller.desired_translation.y - controller.effective_translation.y > 0.1 {
             let mut particles = player_particles.single_mut();
             particles.force_spawn = 6;
@@ -140,7 +149,7 @@ fn player_jump(
         if controller.grounded {
             velocity.velocity.y = -0.1;
             if keyboard.just_pressed(KeyCode::Space) {
-                velocity.velocity += Vec2::new(0.0, jump_strength);
+                velocity.velocity += Vec2::new(0.0, stats.jump_strength);
                 velocity.last_grounded = 999;
             }
         }

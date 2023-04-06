@@ -220,7 +220,7 @@ fn setup_player(
 
     commands
         .spawn((
-            CharacterBundle::new(Vec3::new(30.0, 120.0, CHARACTER_Z), Character::Player),
+            CharacterBundle::new(Vec3::new(55.0, 50.0, CHARACTER_Z), Character::Player),
             RigidBody::KinematicPositionBased,
             //Collider::capsule(Vec2::new(0.0, -6.3), Vec2::new(0.0, 2.5), 20.0 / 2.0),
             Collider::cuboid(17.0 / 2.0, 28.0 / 2.0),
@@ -231,6 +231,15 @@ fn setup_player(
             KinematicCharacterController {
                 filter_flags: QueryFilterFlags::EXCLUDE_SENSORS,
                 ..default()
+            },
+            PlayerStats {
+                float_gravity: -450.0,
+                true_gravity: -1500.0,
+                player_accel: 600.0,
+                player_deccel: 450.0,
+                player_max_velocity: 225.0,
+                jump_strength: 190.0,
+                //jump_strength: 320.0,
             },
             Name::new("Player"),
         ))
