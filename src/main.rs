@@ -1,6 +1,6 @@
 use bevy::{input::common_conditions::input_toggle_active, render::camera::ScalingMode};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use logic_overdosed::prelude::*;
+use logic_overdosed::{comp_from_config, prelude::*};
 
 use bevy::render::{
     camera::RenderTarget,
@@ -15,6 +15,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_state::<GameState>()
+        .add_event::<PotionPickupEvent>()
         .insert_resource(StoryProgression {
             story_marker: 0,
             respawn_point: Vec3::new(55.0, 50.0, CHARACTER_Z),
@@ -24,6 +25,12 @@ fn main() {
                 //TODO find better way to handle this that also works on web
                 include_str!("../assets/maps/map_1.map").to_string(),
                 include_str!("../assets/maps/map_2.map").to_string(),
+            ],
+            potion_effects: vec![
+                ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_1.ron"))
+                    .unwrap(),
+                ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_2.ron"))
+                    .unwrap(),
             ],
         })
         .insert_resource(ClearColor(Color::BLACK))
@@ -49,7 +56,6 @@ fn main() {
         .add_startup_system(setup_player)
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
-        .add_startup_system(spawn_potion)
         .add_startup_system(setup_default_map)
         .add_system(camera_updating)
         .add_plugin(PlayerPlugin)
@@ -70,25 +76,6 @@ fn camera_updating(
     camera.translation.x = camera.translation.x.clamp(WIDTH / 2.0, WIDTH * 3.5);
 }
 
-fn spawn_potion(mut commands: Commands, assets: Res<AssetServer>) {
-    commands.spawn((
-        SpriteBundle {
-            transform: Transform::from_xyz(380.0, 130.0, 900.0),
-            texture: assets.load("potion.png"),
-            ..default()
-        },
-        AnimatedSpriteStrip {
-            current_index: 0,
-            frames: (0..16).collect(),
-            frame_timer: Timer::from_seconds(0.05, TimerMode::Repeating),
-            sprite_size: Vec2::splat(32.0),
-        },
-        Collider::cuboid(10.0, 10.0),
-        Sensor,
-        Potion,
-        Name::new("Potion"),
-    ));
-}
 fn setup_default_map(
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -250,16 +237,8 @@ fn setup_player(
                 filter_flags: QueryFilterFlags::EXCLUDE_SENSORS,
                 ..default()
             },
-            PlayerStats {
-                float_gravity: -450.0,
-                true_gravity: -1500.0,
-                player_accel: 600.0,
-                player_deccel: 450.0,
-                //player_max_velocity: 325.0,
-                player_max_velocity: 225.0,
-                jump_strength: 190.0,
-                //jump_strength: 320.0,
-            },
+            ron::from_str::<PlayerStats>(include_str!("../assets/potions/default_player.ron"))
+                .unwrap(),
             Name::new("Player"),
         ))
         .add_child(head_particle_emitter)

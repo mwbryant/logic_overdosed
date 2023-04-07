@@ -1,0 +1,9 @@
+PlayerStats(
+    float_gravity: -450.0,
+    true_gravity: -1500.0,
+    player_accel: 600.0,
+    player_deccel: 450.0,
+    player_max_velocity: 225.0,
+    jump_strength: 190.0,
+)
+

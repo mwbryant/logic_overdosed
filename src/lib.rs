@@ -16,6 +16,7 @@ pub mod prelude {
     pub use crate::player::*;
     pub use crate::utils::*;
 
+    use bevy::sprite::Material2d;
     pub use bevy::{prelude::*, utils::HashMap};
     pub use bevy_rapier2d::prelude::*;
 
@@ -47,6 +48,8 @@ pub mod prelude {
     #[derive(Component)]
     pub struct Door;
 
+    pub struct PotionPickupEvent(pub usize);
+
     #[derive(Resource, Default)]
     pub struct StoryProgression {
         pub story_marker: usize,
@@ -54,5 +57,6 @@ pub mod prelude {
         pub respawn_point: Vec3,
         pub potion_spawns: Vec<Vec2>,
         pub levels: Vec<String>,
+        pub potion_effects: Vec<PlayerStats>,
     }
 }

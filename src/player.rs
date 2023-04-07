@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::*;
 
 pub struct PlayerPlugin;
@@ -29,7 +31,7 @@ pub struct PlayerVelocity {
     pub last_grounded: usize,
 }
 
-#[derive(Component)]
+#[derive(Component, Serialize, Deserialize, Clone, Copy)]
 pub struct PlayerStats {
     pub float_gravity: f32,
     pub true_gravity: f32,
@@ -105,13 +107,16 @@ fn player_respawn(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn player_pickups(
     mut commands: Commands,
     sensors: Query<&Name, (With<Sensor>, With<Potion>)>,
     exits: Query<&Name, (With<Sensor>, With<Door>, Without<Potion>)>,
+    progression: Res<StoryProgression>,
     mut player: Query<(&mut PlayerStats, &Transform), With<PlayerVelocity>>,
     rapier_context: Res<RapierContext>,
-    mut texture: Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
+    //TODO potions hold refrence to effect?
+    mut event: EventWriter<PotionPickupEvent>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     for (mut stats, transform) in &mut player {
@@ -122,11 +127,9 @@ fn player_pickups(
         rapier_context.intersections_with_shape(shape_pos, 0.0, &shape, filter, |entity| {
             if let Ok(sensors) = sensors.get(entity) {
                 info!("Hit {:?} {:?}", entity, sensors);
-                stats.jump_strength = 320.0;
-                for mut visible in &mut texture {
-                    *visible = Visibility::Visible;
-                }
+                *stats = progression.potion_effects[progression.current_map];
                 next_state.set(GameState::Cutscene);
+                event.send(PotionPickupEvent(progression.current_map));
                 commands.entity(entity).despawn_recursive();
             }
             if let Ok(door) = exits.get(entity) {

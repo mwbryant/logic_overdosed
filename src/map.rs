@@ -64,6 +64,9 @@ pub fn load_map(
                     Vec2::new((x + 1) as f32 * 32.0, (y + 1) as f32 * 32.0),
                 );
             }
+            if c == 'P' {
+                spawn_potion(commands, assets, Vec2::new(x as f32, y as f32));
+            }
         }
         //Cleanup ongoing run
         if in_run {
@@ -96,6 +99,30 @@ pub fn load_map(
         },
         MapEntity,
         Name::new("Background"),
+    ));
+}
+
+fn spawn_potion(commands: &mut Commands, assets: &Res<AssetServer>, position: Vec2) {
+    commands.spawn((
+        SpriteBundle {
+            transform: Transform::from_xyz(
+                position.x * 32.0 + 32.0,
+                position.y * 32.0 + 32.0,
+                900.0,
+            ),
+            texture: assets.load("potion.png"),
+            ..default()
+        },
+        AnimatedSpriteStrip {
+            current_index: 0,
+            frames: (0..16).collect(),
+            frame_timer: Timer::from_seconds(0.05, TimerMode::Repeating),
+            sprite_size: Vec2::splat(32.0),
+        },
+        Collider::cuboid(10.0, 10.0),
+        Sensor,
+        Potion,
+        Name::new("Potion"),
     ));
 }
 

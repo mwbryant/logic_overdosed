@@ -17,11 +17,54 @@ impl Plugin for PostProcessingPlugin {
             .add_system(match_render_to_screen_size)
             .add_system(toggle_chromatic)
             .add_system(toggle_distort)
+            .add_system(activate_post_processing)
             .add_system(toggle_wavy)
             .add_plugin(Material2dPlugin::<ChromaticAbrasionMaterial>::default())
-            .add_plugin(Material2dPlugin::<WavyMaterial>::default())
+            .add_plugin(Material2dPlugin::<SpinnyMaterial>::default())
             .add_plugin(Material2dPlugin::<BlurMaterial>::default())
             .add_plugin(Material2dPlugin::<DistortionMaterial>::default());
+    }
+}
+
+pub fn activate_post_processing(
+    mut potion_grab: EventReader<PotionPickupEvent>,
+    mut effects: ParamSet<(
+        Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
+        Query<&mut Visibility, With<Handle<DistortionMaterial>>>,
+        Query<&mut Visibility, With<Handle<SpinnyMaterial>>>,
+    )>,
+) {
+    for potion in potion_grab.iter() {
+        match potion.0 {
+            0 => {
+                for mut visible in &mut effects.p0() {
+                    if *visible == Visibility::Hidden {
+                        *visible = Visibility::Visible;
+                    } else {
+                        *visible = Visibility::Hidden;
+                    }
+                }
+            }
+            1 => {
+                for mut visible in &mut effects.p1() {
+                    if *visible == Visibility::Hidden {
+                        *visible = Visibility::Visible;
+                    } else {
+                        *visible = Visibility::Hidden;
+                    }
+                }
+            }
+            2 => {
+                for mut visible in &mut effects.p2() {
+                    if *visible == Visibility::Hidden {
+                        *visible = Visibility::Visible;
+                    } else {
+                        *visible = Visibility::Hidden;
+                    }
+                }
+            }
+            _ => unreachable!("Bad potion pickup"),
+        }
     }
 }
 
@@ -67,7 +110,7 @@ fn toggle_distort(
 }
 
 fn toggle_wavy(
-    mut texture: Query<&mut Visibility, With<Handle<WavyMaterial>>>,
+    mut texture: Query<&mut Visibility, With<Handle<SpinnyMaterial>>>,
     keyboard: Res<Input<KeyCode>>,
 ) {
     if keyboard.just_pressed(KeyCode::I) {
@@ -89,7 +132,7 @@ fn spawn_post_processing_textures(
     mut meshes: ResMut<Assets<Mesh>>,
     mut chromatic_materials: ResMut<Assets<ChromaticAbrasionMaterial>>,
     mut distort_materials: ResMut<Assets<DistortionMaterial>>,
-    mut wavy_materials: ResMut<Assets<WavyMaterial>>,
+    mut wavy_materials: ResMut<Assets<SpinnyMaterial>>,
     mut blur_materials: ResMut<Assets<BlurMaterial>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -107,7 +150,7 @@ fn spawn_post_processing_textures(
         source_image: image_handle.clone(),
     });
 
-    let wavy_handle = wavy_materials.add(WavyMaterial {
+    let wavy_handle = wavy_materials.add(SpinnyMaterial {
         source_image: image_handle.clone(),
     });
 
@@ -248,13 +291,13 @@ impl Material2d for DistortionMaterial {
 
 #[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "129ea159-a4fb-93a1-ab08-54871ea91252"]
-pub struct WavyMaterial {
+pub struct SpinnyMaterial {
     #[texture(0)]
     #[sampler(1)]
     pub source_image: Handle<Image>,
 }
 
-impl Material2d for WavyMaterial {
+impl Material2d for SpinnyMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/wavy.wgsl".into()
     }
