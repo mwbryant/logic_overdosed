@@ -8,7 +8,7 @@ impl Plugin for FadeInPlugin {
     }
 }
 
-pub fn spawn_fadeout(commands: &mut Commands) -> Entity {
+pub fn spawn_fadeout(commands: &mut Commands, start: f32, hold: f32, out: f32) -> Entity {
     commands
         .spawn((
             NodeBundle {
@@ -23,9 +23,9 @@ pub fn spawn_fadeout(commands: &mut Commands) -> Entity {
             },
             Fadeout {
                 fade_in_just_finished: false,
-                in_timer: Timer::from_seconds(1.0, TimerMode::Repeating),
-                hold_timer: Timer::from_seconds(0.4, TimerMode::Repeating),
-                out_timer: Timer::from_seconds(1.0, TimerMode::Repeating),
+                in_timer: Timer::from_seconds(start, TimerMode::Repeating),
+                hold_timer: Timer::from_seconds(hold, TimerMode::Repeating),
+                out_timer: Timer::from_seconds(out, TimerMode::Repeating),
                 state: FadeoutState::FadingIn,
             },
             Name::new("Fadeout"),

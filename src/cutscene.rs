@@ -1,3 +1,5 @@
+use bevy_easings::Lerp;
+
 use crate::prelude::*;
 
 #[derive(Component)]
@@ -11,14 +13,30 @@ pub struct DialogPlugin;
 impl Plugin for DialogPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems((update_dialog_box, close_dialog))
-            .add_systems((show_blur, enter_cutscene).in_schedule(OnEnter(GameState::Cutscene)))
+            .insert_resource(CutsceneTracker {
+                timer: Timer::from_seconds(1.5, TimerMode::Once),
+            })
+            .add_systems((enter_cutscene,).in_schedule(OnEnter(GameState::Cutscene)))
+            .add_system(show_blur.in_set(OnUpdate(GameState::Cutscene)))
             .add_system(hide_blur.in_schedule(OnExit(GameState::Cutscene)));
     }
 }
 
-fn show_blur(mut texture: Query<&mut Visibility, With<Handle<BlurMaterial>>>) {
-    for mut visible in &mut texture {
-        *visible = Visibility::Visible;
+#[derive(Resource)]
+pub struct CutsceneTracker {
+    timer: Timer,
+}
+
+fn show_blur(
+    mut texture: Query<&mut Visibility, With<Handle<BlurMaterial>>>,
+    fadeout: Query<&Fadeout>,
+) {
+    if let Ok(fadeout) = fadeout.get_single() {
+        if fadeout.fade_in_just_finished {
+            for mut visible in &mut texture {
+                *visible = Visibility::Visible;
+            }
+        }
     }
 }
 
@@ -30,11 +48,28 @@ fn hide_blur(mut texture: Query<&mut Visibility, With<Handle<BlurMaterial>>>) {
 
 fn update_dialog_box(
     mut text: Query<&mut Style, With<DialogText>>,
+    mut parent: Query<&mut Style, (With<DialogUI>, Without<DialogText>)>,
     camera: Query<&Camera, With<MainCamera>>,
+    mut cutscene: ResMut<CutsceneTracker>,
+    fadeout: Query<&Fadeout>,
+    time: Res<Time>,
 ) {
+    if fadeout.iter().count() != 0 {
+        //Don't do anything if there is a fade happening
+        return;
+    }
+    cutscene.timer.tick(time.delta());
     let camera = camera.single();
 
     let screen_width = camera.logical_viewport_size().unwrap().x;
+    for mut parent in &mut parent {
+        //parent.align_content
+        parent.margin = UiRect::bottom(Val::Percent(Lerp::lerp(
+            &-25.0,
+            &4.0,
+            &cutscene.timer.percent(),
+        )));
+    }
 
     for mut text in &mut text {
         //AHHHHH why must this be Px not percent :(
@@ -46,8 +81,10 @@ fn update_dialog_box(
 fn enter_cutscene(
     mut commands: Commands,
     assets: Res<AssetServer>,
+    mut cutscene: ResMut<CutsceneTracker>,
     mut progression: ResMut<StoryProgression>,
 ) {
+    cutscene.timer.reset();
     // include for wasm safety
     let lines = include_str!("../assets/plot.txt");
     let lines: Vec<String> = lines.lines().map(|l| l.to_string()).collect();
@@ -60,7 +97,11 @@ fn close_dialog(
     mut overworld_state: ResMut<NextState<GameState>>,
     input: Res<Input<KeyCode>>,
     dialog: Query<Entity, With<DialogUI>>,
+    cutscene: ResMut<CutsceneTracker>,
 ) {
+    if !cutscene.timer.finished() {
+        return;
+    }
     if input.just_pressed(KeyCode::Space) {
         for dialog in &dialog {
             commands.entity(dialog).despawn_recursive();
@@ -87,7 +128,7 @@ pub fn spawn_dialog_box(
                 flex_direction: FlexDirection::Row,
                 position_type: PositionType::Absolute,
                 position: UiRect::left(Val::Percent(5.0)),
-                margin: UiRect::bottom(Val::Percent(4.0)),
+                margin: UiRect::bottom(Val::Percent(-25.0)),
                 ..default()
             },
             ..default()
@@ -114,8 +155,7 @@ pub fn spawn_dialog_box(
             },
             ..default()
         },
-        DialogUI,
-        Name::new("Dialog UI"),
+        Name::new("Player pfp"),
     );
 
     let text_parent = (

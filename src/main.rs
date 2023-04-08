@@ -1,6 +1,6 @@
 use bevy::{input::common_conditions::input_toggle_active, render::camera::ScalingMode};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use logic_overdosed::{comp_from_config, prelude::*};
+use logic_overdosed::prelude::*;
 
 use bevy::render::{
     camera::RenderTarget,
@@ -15,7 +15,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_state::<GameState>()
-        .add_event::<PotionPickupEvent>()
+        //.add_event::<PotionPickupEvent>()
         .insert_resource(StoryProgression {
             story_marker: 0,
             respawn_point: Vec3::new(55.0, 50.0, CHARACTER_Z),

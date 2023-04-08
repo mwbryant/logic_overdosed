@@ -20,6 +20,7 @@ impl Plugin for PlayerPlugin {
                 .in_set(OnUpdate(GameState::Platforming)),
         )
         .add_system(player_particles)
+        .add_system(apply_player_effect)
         .add_system(player_pickups)
         .add_system(player_animation);
     }
@@ -63,7 +64,7 @@ fn player_death(
     }
     let player = player.single();
     if player.translation.y < -64.0 {
-        let fade = spawn_fadeout(&mut commands);
+        let fade = spawn_fadeout(&mut commands, 1.0, 0.4, 1.0);
         commands.entity(fade).insert(DeathFade);
     }
 }
@@ -107,34 +108,51 @@ fn player_respawn(
     }
 }
 
+fn apply_player_effect(
+    progression: Res<StoryProgression>,
+    fadeout: Query<&Fadeout, With<PotionFade>>,
+    mut player: Query<&mut PlayerStats, With<PlayerVelocity>>,
+) {
+    if let Ok(fadeout) = fadeout.get_single() {
+        if fadeout.fade_in_just_finished {
+            for mut stats in &mut player {
+                *stats = progression.potion_effects[progression.current_map];
+            }
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn player_pickups(
     mut commands: Commands,
     sensors: Query<&Name, (With<Sensor>, With<Potion>)>,
     exits: Query<&Name, (With<Sensor>, With<Door>, Without<Potion>)>,
     progression: Res<StoryProgression>,
-    mut player: Query<(&mut PlayerStats, &Transform), With<PlayerVelocity>>,
     rapier_context: Res<RapierContext>,
+    player: Query<&Transform, With<PlayerVelocity>>,
     //TODO potions hold refrence to effect?
-    mut event: EventWriter<PotionPickupEvent>,
+    //mut event: EventWriter<PotionPickupEvent>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    for (mut stats, transform) in &mut player {
+    for transform in &player {
         let shape = Collider::cuboid(15.0, 15.0);
         let shape_pos = transform.translation.truncate();
         let filter = QueryFilter::default();
 
         rapier_context.intersections_with_shape(shape_pos, 0.0, &shape, filter, |entity| {
-            if let Ok(sensors) = sensors.get(entity) {
-                info!("Hit {:?} {:?}", entity, sensors);
-                *stats = progression.potion_effects[progression.current_map];
+            if let Ok(_sensors) = sensors.get(entity) {
+                //event.send(PotionPickupEvent(progression.current_map));
+                let fade = spawn_fadeout(&mut commands, 0.4, 0.3, 0.4);
+                commands
+                    .entity(fade)
+                    .insert(PotionFade(progression.current_map));
                 next_state.set(GameState::Cutscene);
-                event.send(PotionPickupEvent(progression.current_map));
+
                 commands.entity(entity).despawn_recursive();
             }
             if let Ok(door) = exits.get(entity) {
                 info!("Hit Door {:?} {:?}", entity, door);
-                let fadeout = spawn_fadeout(&mut commands);
+                let fadeout = spawn_fadeout(&mut commands, 1.0, 0.4, 1.0);
                 commands.entity(fadeout).insert(ExitFade);
                 commands.entity(entity).despawn_recursive();
             }

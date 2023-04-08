@@ -16,7 +16,6 @@ pub mod prelude {
     pub use crate::player::*;
     pub use crate::utils::*;
 
-    use bevy::sprite::Material2d;
     pub use bevy::{prelude::*, utils::HashMap};
     pub use bevy_rapier2d::prelude::*;
 
@@ -48,7 +47,8 @@ pub mod prelude {
     #[derive(Component)]
     pub struct Door;
 
-    pub struct PotionPickupEvent(pub usize);
+    #[derive(Component)]
+    pub struct PotionFade(pub usize);
 
     #[derive(Resource, Default)]
     pub struct StoryProgression {

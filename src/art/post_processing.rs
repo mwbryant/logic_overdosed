@@ -27,15 +27,20 @@ impl Plugin for PostProcessingPlugin {
 }
 
 pub fn activate_post_processing(
-    mut potion_grab: EventReader<PotionPickupEvent>,
+    fadeout: Query<&Fadeout, With<PotionFade>>,
+    progression: Res<StoryProgression>,
+    //mut potion_grab: EventReader<PotionPickupEvent>,
     mut effects: ParamSet<(
         Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
         Query<&mut Visibility, With<Handle<DistortionMaterial>>>,
         Query<&mut Visibility, With<Handle<SpinnyMaterial>>>,
     )>,
 ) {
-    for potion in potion_grab.iter() {
-        match potion.0 {
+    if let Ok(fadeout) = fadeout.get_single() {
+        if !fadeout.fade_in_just_finished {
+            return;
+        }
+        match progression.current_map {
             0 => {
                 for mut visible in &mut effects.p0() {
                     if *visible == Visibility::Hidden {
