@@ -5,4 +5,6 @@ PlayerStats(
     player_deccel: 450.0,
     player_max_velocity: 325.0,
     jump_strength: 320.0,
+    can_wall_jump: false,
+    wall_jump_strength: 80.0,
 )

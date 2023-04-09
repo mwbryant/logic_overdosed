@@ -3,6 +3,7 @@ mod art;
 mod cutscene;
 mod map;
 mod player;
+mod timer;
 mod utils;
 
 pub mod prelude {
@@ -14,6 +15,7 @@ pub mod prelude {
     pub use crate::cutscene::*;
     pub use crate::map::*;
     pub use crate::player::*;
+    pub use crate::timer::*;
     pub use crate::utils::*;
 
     pub use bevy::{prelude::*, utils::HashMap};

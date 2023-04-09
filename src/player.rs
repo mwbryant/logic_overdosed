@@ -30,6 +30,15 @@ impl Plugin for PlayerPlugin {
 pub struct PlayerVelocity {
     pub velocity: Vec2,
     pub last_grounded: usize,
+    pub on_wall: OnWall,
+    pub last_on_wall: usize,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum OnWall {
+    NotOnWall,
+    OnLeft,
+    OnRight,
 }
 
 #[derive(Component, Serialize, Deserialize, Clone, Copy)]
@@ -40,6 +49,8 @@ pub struct PlayerStats {
     pub player_deccel: f32,
     pub player_max_velocity: f32,
     pub jump_strength: f32,
+    pub can_wall_jump: bool,
+    pub wall_jump_strength: f32,
 }
 
 #[derive(Component)]
@@ -142,7 +153,7 @@ fn player_pickups(
         rapier_context.intersections_with_shape(shape_pos, 0.0, &shape, filter, |entity| {
             if let Ok(_sensors) = sensors.get(entity) {
                 //event.send(PotionPickupEvent(progression.current_map));
-                let fade = spawn_fadeout(&mut commands, 0.4, 0.3, 0.4);
+                let fade = spawn_fadeout(&mut commands, 0.4, 0.1, 0.2);
                 commands
                     .entity(fade)
                     .insert(PotionFade(progression.current_map));
@@ -245,8 +256,23 @@ fn player_jump(
             particles.force_spawn = 6;
             velocity.velocity.y = -0.1;
         }
-        if (controller.desired_translation.x - controller.effective_translation.x).abs() > 0.1 {
+        if (controller.desired_translation.x - controller.effective_translation.x).abs() > 0.02 {
+            if !controller.grounded {
+                if controller.desired_translation.x - controller.effective_translation.x > 0.0 {
+                    velocity.last_on_wall = 0;
+                    velocity.on_wall = OnWall::OnLeft;
+                } else {
+                    velocity.last_on_wall = 0;
+                    velocity.on_wall = OnWall::OnRight;
+                }
+            } else {
+                velocity.last_on_wall += 1;
+                velocity.on_wall = OnWall::NotOnWall;
+            }
             velocity.velocity.x = 0.0;
+        } else {
+            velocity.last_on_wall += 1;
+            velocity.on_wall = OnWall::NotOnWall;
         }
         if controller.grounded {
             velocity.velocity.y = -0.1;
@@ -254,6 +280,18 @@ fn player_jump(
                 velocity.velocity += Vec2::new(0.0, stats.jump_strength);
                 velocity.last_grounded = 999;
             }
+        } else if stats.can_wall_jump
+            && velocity.last_on_wall < 3
+            && keyboard.just_pressed(KeyCode::Space)
+        {
+            if velocity.on_wall == OnWall::OnLeft {
+                velocity.velocity.y = -0.1;
+                velocity.velocity += Vec2::new(-stats.wall_jump_strength, stats.jump_strength);
+            } else {
+                velocity.velocity.y = -0.1;
+                velocity.velocity += Vec2::new(stats.wall_jump_strength, stats.jump_strength);
+            }
+            velocity.last_grounded = 999;
         }
     }
 }

@@ -23,10 +23,13 @@ fn main() {
             potion_spawns: vec![Vec2::new(380.0, 130.0), Vec2::new(380.0, 130.0)],
             levels: vec![
                 //TODO find better way to handle this that also works on web
+                include_str!("../assets/maps/map_test.map").to_string(),
                 include_str!("../assets/maps/map_1.map").to_string(),
                 include_str!("../assets/maps/map_2.map").to_string(),
             ],
             potion_effects: vec![
+                ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_test.ron"))
+                    .unwrap(),
                 ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_1.ron"))
                     .unwrap(),
                 ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_2.ron"))
@@ -61,6 +64,7 @@ fn main() {
         .add_plugin(PlayerPlugin)
         .add_plugin(DialogPlugin)
         .add_plugin(MapPlugin)
+        .add_plugin(SpeedrunPlugin)
         .add_plugin(ArtPlugin);
 
     app.run();
@@ -232,6 +236,8 @@ fn setup_player(
             PlayerVelocity {
                 velocity: Vec2::ZERO,
                 last_grounded: 0,
+                on_wall: OnWall::NotOnWall,
+                last_on_wall: 0,
             },
             KinematicCharacterController {
                 filter_flags: QueryFilterFlags::EXCLUDE_SENSORS,
