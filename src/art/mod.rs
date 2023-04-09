@@ -151,7 +151,5 @@ pub enum Character {
 #[derive(Resource)]
 pub struct SpriteSheetMaps {
     character_atlas: Handle<TextureAtlas>,
-    _icon_atlas: Handle<TextureAtlas>,
     pub characters: HashMap<Character, usize>,
-    pub icons: HashMap<Icon, usize>,
 }

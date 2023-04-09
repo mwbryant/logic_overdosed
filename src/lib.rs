@@ -2,6 +2,7 @@
 mod art;
 mod cutscene;
 mod map;
+mod menu;
 mod player;
 mod timer;
 mod utils;
@@ -14,6 +15,7 @@ pub mod prelude {
     pub use crate::art::*;
     pub use crate::cutscene::*;
     pub use crate::map::*;
+    pub use crate::menu::*;
     pub use crate::player::*;
     pub use crate::timer::*;
     pub use crate::utils::*;
@@ -35,9 +37,9 @@ pub mod prelude {
 
     #[derive(States, PartialEq, Eq, Debug, Default, Clone, Hash)]
     pub enum GameState {
+        #[default]
         Menu,
         Platforming,
-        #[default]
         Cutscene,
     }
     #[derive(Component)]

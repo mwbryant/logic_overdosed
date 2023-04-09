@@ -6,8 +6,8 @@ pub struct SpeedrunPlugin;
 
 impl Plugin for SpeedrunPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_timer_ui)
-            .add_system(update_timer_ui);
+        app.add_system(spawn_timer_ui.in_schedule(OnExit(GameState::Menu)))
+            .add_system(update_timer_ui.in_set(OnUpdate(GameState::Platforming)));
     }
 }
 
@@ -26,7 +26,7 @@ fn spawn_timer_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 align_items: AlignItems::FlexEnd,
                 flex_direction: FlexDirection::Column,
                 position_type: PositionType::Absolute,
-                position: UiRect::right(Val::Percent(5.0)),
+                position: UiRect::right(Val::Percent(2.0)),
                 ..default()
             },
             ..default()
@@ -35,10 +35,10 @@ fn spawn_timer_ui(mut commands: Commands, assets: Res<AssetServer>) {
     );
     let timer_text = (
         TextBundle::from_section(
-            "000:00",
+            "0.00s",
             TextStyle {
                 font,
-                font_size: 48.0,
+                font_size: 36.0,
                 color: Color::WHITE,
             },
         )

@@ -56,14 +56,15 @@ fn main() {
         )
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(50.0))
         .add_plugin(RapierDebugRenderPlugin::default())
-        .add_startup_system(setup_player)
+        .add_system(setup_player.in_schedule(OnExit(GameState::Menu)))
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
-        .add_startup_system(setup_default_map)
+        .add_system(setup_default_map.in_schedule(OnExit(GameState::Menu)))
         .add_system(camera_updating)
         .add_plugin(PlayerPlugin)
         .add_plugin(DialogPlugin)
         .add_plugin(MapPlugin)
+        .add_plugin(MenuPlugin)
         .add_plugin(SpeedrunPlugin)
         .add_plugin(ArtPlugin);
 
@@ -74,10 +75,11 @@ fn camera_updating(
     player: Query<&Transform, (With<PlayerVelocity>, Without<MainCamera>)>,
     mut camera: Query<&mut Transform, With<MainCamera>>,
 ) {
-    let player = player.single();
-    let mut camera = camera.single_mut();
-    camera.translation.x = player.translation.x;
-    camera.translation.x = camera.translation.x.clamp(WIDTH / 2.0, WIDTH * 3.5);
+    if let Ok(player) = player.get_single() {
+        let mut camera = camera.single_mut();
+        camera.translation.x = player.translation.x;
+        camera.translation.x = camera.translation.x.clamp(WIDTH / 2.0, WIDTH * 3.5);
+    }
 }
 
 fn setup_default_map(

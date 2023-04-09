@@ -186,13 +186,13 @@ fn player_particles(
 }
 
 fn player_animation(mut player: Query<(&mut TextureAtlasSprite, &PlayerVelocity)>) {
-    let (mut sprite, player) = player.single_mut();
-
-    if player.velocity.x > 0.0 {
-        sprite.flip_x = true;
-    }
-    if player.velocity.x < 0.0 {
-        sprite.flip_x = false;
+    if let Ok((mut sprite, player)) = player.get_single_mut() {
+        if player.velocity.x > 0.0 {
+            sprite.flip_x = true;
+        }
+        if player.velocity.x < 0.0 {
+            sprite.flip_x = false;
+        }
     }
 }
 
@@ -270,7 +270,7 @@ fn player_jump(
                 velocity.on_wall = OnWall::NotOnWall;
             }
             velocity.velocity.x = 0.0;
-        } else {
+        } else if controller.desired_translation.x.abs() > 0.02 {
             velocity.last_on_wall += 1;
             velocity.on_wall = OnWall::NotOnWall;
         }

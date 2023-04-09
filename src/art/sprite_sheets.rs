@@ -39,26 +39,11 @@ fn setup_spritesheet_maps(
     );
     let character_atlas = texture_atlases.add(texture_atlas);
 
-    let texture_handle = asset_server.load("input_icons/Tilemap/tilemap.png");
-    let texture_atlas = TextureAtlas::from_grid(
-        texture_handle,
-        Vec2::new(16.0, 16.0),
-        ICON_SHEET_WIDTH,
-        24,
-        Some(Vec2::splat(1.0)),
-        None,
-    );
-    let icon_atlas = texture_atlases.add(texture_atlas);
-
     let characters = HashMap::from([(Character::Player, 0)]);
-
-    let icons = HashMap::from([(Icon::KeyE, 0)]);
 
     commands.insert_resource(SpriteSheetMaps {
         character_atlas,
-        _icon_atlas: icon_atlas,
         characters,
-        icons,
     });
 }
 
