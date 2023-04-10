@@ -17,6 +17,14 @@ struct MenuElement;
 struct MenuFade;
 
 fn spawn_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
+    commands.spawn((
+        SpriteBundle {
+            transform: Transform::from_xyz(640.0 / 2.0, 480.0 / 2.0, 100.0),
+            texture: assets.load("title.png"),
+            ..default()
+        },
+        MenuElement,
+    ));
     //FIXME: Global font setting
     let font = assets.load("fonts/pointfree.ttf");
 
@@ -29,10 +37,15 @@ fn spawn_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 justify_content: JustifyContent::Center,
                 flex_direction: FlexDirection::Column,
                 position_type: PositionType::Absolute,
-                position: UiRect::right(Val::Percent(30.0)),
+                position: UiRect::new(
+                    Val::Undefined,
+                    Val::Percent(40.0),
+                    Val::Percent(70.0),
+                    Val::Undefined,
+                ),
                 ..default()
             },
-            background_color: Color::ALICE_BLUE.into(),
+            background_color: Color::rgb(154.0 / 255.0, 151.0 / 255.0, 185.0 / 255.0).into(),
             ..default()
         },
         MenuElement,
@@ -66,9 +79,14 @@ fn update_menu_ui(mut commands: Commands, fade: Query<&Fadeout>, button: Query<&
     }
 }
 
-fn exit_menu(fade: Query<&Fadeout, With<MenuFade>>, mut next_state: ResMut<NextState<GameState>>) {
+fn exit_menu(
+    fade: Query<&Fadeout, With<MenuFade>>,
+    mut disable: EventWriter<DisableEffectsEvent>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
     for fade in &fade {
         if fade.fade_in_just_finished {
+            disable.send(DisableEffectsEvent);
             next_state.set(GameState::Cutscene);
         }
     }

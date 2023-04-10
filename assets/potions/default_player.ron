@@ -3,7 +3,7 @@ PlayerStats(
     true_gravity: -1500.0,
     player_accel: 600.0,
     player_deccel: 450.0,
-    player_max_velocity: 225.0,
+    player_max_velocity: 175.0,
     jump_strength: 190.0,
     can_wall_jump: false,
     wall_jump_strength: 80.0,

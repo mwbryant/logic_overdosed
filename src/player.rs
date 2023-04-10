@@ -29,7 +29,6 @@ impl Plugin for PlayerPlugin {
 #[derive(Component)]
 pub struct PlayerVelocity {
     pub velocity: Vec2,
-    pub last_grounded: usize,
     pub on_wall: OnWall,
     pub last_on_wall: usize,
 }
@@ -80,12 +79,14 @@ fn player_death(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn player_exit_level(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut player: Query<(&mut PlayerVelocity, &mut Transform), With<PlayerStats>>,
     //TODO despawn on event with util system
     map_entities: Query<Entity, With<MapEntity>>,
+    mut disable_effects: EventWriter<DisableEffectsEvent>,
     mut progression: ResMut<StoryProgression>,
     fade: Query<&Fadeout, With<ExitFade>>,
     mut next_state: ResMut<NextState<GameState>>,
@@ -98,6 +99,7 @@ fn player_exit_level(
                 commands.entity(map_ent).despawn_recursive();
             }
             progression.current_map += 1;
+            disable_effects.send(DisableEffectsEvent);
             load_map(&mut commands, &assets, &progression);
             player.translation = progression.respawn_point;
             next_state.set(GameState::Cutscene);
@@ -278,10 +280,9 @@ fn player_jump(
             velocity.velocity.y = -0.1;
             if keyboard.just_pressed(KeyCode::Space) {
                 velocity.velocity += Vec2::new(0.0, stats.jump_strength);
-                velocity.last_grounded = 999;
             }
         } else if stats.can_wall_jump
-            && velocity.last_on_wall < 3
+            && velocity.last_on_wall < 6
             && keyboard.just_pressed(KeyCode::Space)
         {
             if velocity.on_wall == OnWall::OnLeft {
@@ -291,7 +292,6 @@ fn player_jump(
                 velocity.velocity.y = -0.1;
                 velocity.velocity += Vec2::new(stats.wall_jump_strength, stats.jump_strength);
             }
-            velocity.last_grounded = 999;
         }
     }
 }

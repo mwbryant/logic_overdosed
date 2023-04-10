@@ -19,10 +19,39 @@ impl Plugin for PostProcessingPlugin {
             .add_system(toggle_distort)
             .add_system(activate_post_processing)
             .add_system(toggle_wavy)
+            .add_system(toggle_weird)
+            .add_system(disable_post_processing)
             .add_plugin(Material2dPlugin::<ChromaticAbrasionMaterial>::default())
             .add_plugin(Material2dPlugin::<SpinnyMaterial>::default())
             .add_plugin(Material2dPlugin::<BlurMaterial>::default())
-            .add_plugin(Material2dPlugin::<DistortionMaterial>::default());
+            .add_plugin(Material2dPlugin::<DistortionMaterial>::default())
+            .add_plugin(Material2dPlugin::<WeirdMaterial>::default());
+    }
+}
+
+pub fn disable_post_processing(
+    mut disable: EventReader<DisableEffectsEvent>,
+    mut effects: ParamSet<(
+        Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
+        Query<&mut Visibility, With<Handle<DistortionMaterial>>>,
+        Query<&mut Visibility, With<Handle<SpinnyMaterial>>>,
+        Query<&mut Visibility, With<Handle<WeirdMaterial>>>,
+    )>,
+) {
+    if disable.iter().count() == 0 {
+        return;
+    }
+    for mut visible in &mut effects.p0() {
+        *visible = Visibility::Hidden;
+    }
+    for mut visible in &mut effects.p1() {
+        *visible = Visibility::Hidden;
+    }
+    for mut visible in &mut effects.p2() {
+        *visible = Visibility::Hidden;
+    }
+    for mut visible in &mut effects.p3() {
+        *visible = Visibility::Hidden;
     }
 }
 
@@ -33,6 +62,7 @@ pub fn activate_post_processing(
     mut effects: ParamSet<(
         Query<&mut Visibility, With<Handle<ChromaticAbrasionMaterial>>>,
         Query<&mut Visibility, With<Handle<DistortionMaterial>>>,
+        Query<&mut Visibility, With<Handle<WeirdMaterial>>>,
         Query<&mut Visibility, With<Handle<SpinnyMaterial>>>,
     )>,
 ) {
@@ -46,7 +76,7 @@ pub fn activate_post_processing(
                     if *visible == Visibility::Hidden {
                         *visible = Visibility::Visible;
                     } else {
-                        *visible = Visibility::Hidden;
+                        //*visible = Visibility::Hidden;
                     }
                 }
             }
@@ -55,7 +85,7 @@ pub fn activate_post_processing(
                     if *visible == Visibility::Hidden {
                         *visible = Visibility::Visible;
                     } else {
-                        *visible = Visibility::Hidden;
+                        //*visible = Visibility::Hidden;
                     }
                 }
             }
@@ -64,7 +94,16 @@ pub fn activate_post_processing(
                     if *visible == Visibility::Hidden {
                         *visible = Visibility::Visible;
                     } else {
-                        *visible = Visibility::Hidden;
+                        //*visible = Visibility::Hidden;
+                    }
+                }
+            }
+            3 => {
+                for mut visible in &mut effects.p3() {
+                    if *visible == Visibility::Hidden {
+                        *visible = Visibility::Visible;
+                    } else {
+                        //*visible = Visibility::Hidden;
                     }
                 }
             }
@@ -129,6 +168,21 @@ fn toggle_wavy(
     }
 }
 
+fn toggle_weird(
+    mut texture: Query<&mut Visibility, With<Handle<WeirdMaterial>>>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::U) {
+        for mut visible in &mut texture {
+            if *visible == Visibility::Hidden {
+                *visible = Visibility::Visible;
+            } else {
+                *visible = Visibility::Hidden;
+            }
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn spawn_post_processing_textures(
     mut commands: Commands,
@@ -138,6 +192,7 @@ fn spawn_post_processing_textures(
     mut chromatic_materials: ResMut<Assets<ChromaticAbrasionMaterial>>,
     mut distort_materials: ResMut<Assets<DistortionMaterial>>,
     mut wavy_materials: ResMut<Assets<SpinnyMaterial>>,
+    mut weird_materials: ResMut<Assets<WeirdMaterial>>,
     mut blur_materials: ResMut<Assets<BlurMaterial>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -164,6 +219,11 @@ fn spawn_post_processing_textures(
         distortion_image: assets.load("distortion.png"),
     });
 
+    let weird_handle = weird_materials.add(WeirdMaterial {
+        source_image: image_handle.clone(),
+        distortion_image: assets.load("weird.png"),
+    });
+
     commands.spawn((
         MaterialMesh2dBundle {
             mesh: quad_handle.clone().into(),
@@ -172,7 +232,7 @@ fn spawn_post_processing_textures(
                 translation: Vec3::new(0.0, 0.0, 1.5),
                 ..default()
             },
-            visibility: Visibility::Hidden,
+            visibility: Visibility::Visible,
             ..default()
         },
         PostProcessingQuad,
@@ -188,7 +248,7 @@ fn spawn_post_processing_textures(
                 translation: Vec3::new(0.0, 0.0, 100.5),
                 ..default()
             },
-            visibility: Visibility::Visible,
+            visibility: Visibility::Hidden,
             ..default()
         },
         PostProcessingQuad,
@@ -226,6 +286,22 @@ fn spawn_post_processing_textures(
         PostProcessingQuad,
         post_processing_pass_layer,
         Name::new("Post Processing Distort"),
+    ));
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: weird_handle,
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 7.5),
+                ..default()
+            },
+            visibility: Visibility::Hidden,
+            ..default()
+        },
+        PostProcessingQuad,
+        post_processing_pass_layer,
+        Name::new("Post Processing Weird"),
     ));
 
     let material_handle = materials.add(ColorMaterial {
@@ -291,6 +367,23 @@ pub struct DistortionMaterial {
 impl Material2d for DistortionMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/distort.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "912f08eb-a4ab-3331-1b08-54871ea59295"]
+pub struct WeirdMaterial {
+    #[texture(0)]
+    #[sampler(1)]
+    pub source_image: Handle<Image>,
+    #[texture(2)]
+    #[sampler(3)]
+    pub distortion_image: Handle<Image>,
+}
+
+impl Material2d for WeirdMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/weird.wgsl".into()
     }
 }
 

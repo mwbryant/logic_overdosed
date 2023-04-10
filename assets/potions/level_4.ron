@@ -1,0 +1,10 @@
+PlayerStats(
+    float_gravity: -250.0,
+    true_gravity: -750.0,
+    player_accel: 400.0,
+    player_deccel: 220.0,
+    player_max_velocity: 225.0,
+    jump_strength: 210.0,
+    can_wall_jump: true,
+    wall_jump_strength: 280.0,
+)

@@ -1,4 +1,10 @@
-use bevy::{input::common_conditions::input_toggle_active, render::camera::ScalingMode};
+use bevy::{
+    input::common_conditions::input_toggle_active,
+    render::{
+        camera::ScalingMode,
+        render_resource::{AddressMode, FilterMode, SamplerDescriptor},
+    },
+};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use logic_overdosed::prelude::*;
 
@@ -15,7 +21,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_state::<GameState>()
-        //.add_event::<PotionPickupEvent>()
+        .add_event::<DisableEffectsEvent>()
         .insert_resource(StoryProgression {
             story_marker: 0,
             respawn_point: Vec3::new(55.0, 50.0, CHARACTER_Z),
@@ -23,23 +29,36 @@ fn main() {
             potion_spawns: vec![Vec2::new(380.0, 130.0), Vec2::new(380.0, 130.0)],
             levels: vec![
                 //TODO find better way to handle this that also works on web
-                include_str!("../assets/maps/map_test.map").to_string(),
                 include_str!("../assets/maps/map_1.map").to_string(),
                 include_str!("../assets/maps/map_2.map").to_string(),
+                include_str!("../assets/maps/map_3.map").to_string(),
+                include_str!("../assets/maps/map_4.map").to_string(),
             ],
             potion_effects: vec![
-                ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_test.ron"))
-                    .unwrap(),
                 ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_1.ron"))
                     .unwrap(),
                 ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_2.ron"))
+                    .unwrap(),
+                ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_3.ron"))
+                    .unwrap(),
+                ron::from_str::<PlayerStats>(include_str!("../assets/potions/level_4.ron"))
                     .unwrap(),
             ],
         })
         .insert_resource(ClearColor(Color::BLACK))
         .add_plugins(
             DefaultPlugins
-                .set(ImagePlugin::default_nearest())
+                .set(ImagePlugin {
+                    default_sampler: SamplerDescriptor {
+                        address_mode_u: AddressMode::Repeat,
+                        address_mode_v: AddressMode::Repeat,
+                        address_mode_w: AddressMode::Repeat,
+                        mag_filter: FilterMode::Nearest,
+                        min_filter: FilterMode::Nearest,
+                        mipmap_filter: FilterMode::Nearest,
+                        ..default()
+                    },
+                })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Logic Game".into(),
@@ -237,7 +256,6 @@ fn setup_player(
             Collider::cuboid(17.0 / 2.0, 28.0 / 2.0),
             PlayerVelocity {
                 velocity: Vec2::ZERO,
-                last_grounded: 0,
                 on_wall: OnWall::NotOnWall,
                 last_on_wall: 0,
             },

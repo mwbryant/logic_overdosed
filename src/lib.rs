@@ -32,6 +32,8 @@ pub mod prelude {
     pub const ICON_Z: f32 = 850.0;
     pub const WORLD_UI_Z: f32 = 999.0;
 
+    pub struct DisableEffectsEvent;
+
     #[derive(Resource)]
     pub struct MainRender(pub Handle<Image>);
 
