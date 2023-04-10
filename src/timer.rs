@@ -7,12 +7,19 @@ pub struct SpeedrunPlugin;
 impl Plugin for SpeedrunPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(spawn_timer_ui.in_schedule(OnExit(GameState::Menu)))
+            .add_system(stop_timer.in_schedule(OnEnter(GameState::Win)))
             .add_system(update_timer_ui.in_set(OnUpdate(GameState::Platforming)));
     }
 }
 
 #[derive(Component)]
-pub struct TimerUI(Stopwatch);
+pub struct TimerUI(pub Stopwatch);
+
+fn stop_timer(mut ui: Query<(&mut Text, &mut TimerUI)>) {
+    for (mut text, _) in &mut ui {
+        text.sections[0].value = "".to_string();
+    }
+}
 
 fn spawn_timer_ui(mut commands: Commands, assets: Res<AssetServer>) {
     //FIXME: Global font setting

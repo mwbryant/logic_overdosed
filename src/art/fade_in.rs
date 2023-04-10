@@ -4,7 +4,7 @@ pub struct FadeInPlugin;
 
 impl Plugin for FadeInPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_fadeout);
+        app.add_system(update_fadeout.in_base_set(CoreSet::PreUpdate));
     }
 }
 

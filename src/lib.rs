@@ -43,6 +43,7 @@ pub mod prelude {
         Menu,
         Platforming,
         Cutscene,
+        Win,
     }
     #[derive(Component)]
     pub struct MainCamera;
@@ -61,6 +62,7 @@ pub mod prelude {
         pub story_marker: usize,
         pub current_map: usize,
         pub respawn_point: Vec3,
+        pub respawn_alt: bool,
         pub potion_spawns: Vec<Vec2>,
         pub levels: Vec<String>,
         pub potion_effects: Vec<PlayerStats>,

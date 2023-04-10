@@ -15,13 +15,13 @@ impl Plugin for PlayerPlugin {
                 player_control,
                 player_update,
                 player_death,
+                player_pickups,
             )
                 .chain()
                 .in_set(OnUpdate(GameState::Platforming)),
         )
         .add_system(player_particles)
         .add_system(apply_player_effect)
-        .add_system(player_pickups)
         .add_system(player_animation);
     }
 }
@@ -91,18 +91,26 @@ fn player_exit_level(
     fade: Query<&Fadeout, With<ExitFade>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    if let Ok(fade) = fade.get_single() {
+    for fade in &fade {
+        info!("fade");
         let (mut velocity, mut player) = player.single_mut();
         velocity.velocity.x = 0.0;
         if fade.fade_in_just_finished {
             for map_ent in &map_entities {
                 commands.entity(map_ent).despawn_recursive();
             }
+            progression.respawn_alt = false;
             progression.current_map += 1;
             disable_effects.send(DisableEffectsEvent);
-            load_map(&mut commands, &assets, &progression);
-            player.translation = progression.respawn_point;
-            next_state.set(GameState::Cutscene);
+            if progression.current_map >= progression.levels.len() {
+                info!("Win");
+                next_state.set(GameState::Win);
+            } else {
+                load_map(&mut commands, &assets, &progression);
+                player.translation = progression.respawn_point;
+                next_state.set(GameState::Cutscene);
+            }
+            return;
         }
     }
 }
@@ -115,7 +123,12 @@ fn player_respawn(
     if let Ok(fade) = fade.get_single() {
         if fade.fade_in_just_finished {
             let (mut velocity, mut player) = player.single_mut();
-            player.translation = progression.respawn_point;
+            if progression.respawn_alt {
+                player.translation =
+                    progression.potion_spawns[progression.current_map].extend(CHARACTER_Z);
+            } else {
+                player.translation = progression.respawn_point;
+            }
             velocity.velocity = Vec2::ZERO;
         }
     }
@@ -140,7 +153,7 @@ fn player_pickups(
     mut commands: Commands,
     sensors: Query<&Name, (With<Sensor>, With<Potion>)>,
     exits: Query<&Name, (With<Sensor>, With<Door>, Without<Potion>)>,
-    progression: Res<StoryProgression>,
+    mut progression: ResMut<StoryProgression>,
     rapier_context: Res<RapierContext>,
     player: Query<&Transform, With<PlayerVelocity>>,
     //TODO potions hold refrence to effect?
@@ -159,6 +172,7 @@ fn player_pickups(
                 commands
                     .entity(fade)
                     .insert(PotionFade(progression.current_map));
+                progression.respawn_alt = true;
                 next_state.set(GameState::Cutscene);
 
                 commands.entity(entity).despawn_recursive();

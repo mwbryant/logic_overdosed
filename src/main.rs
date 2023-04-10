@@ -26,7 +26,13 @@ fn main() {
             story_marker: 0,
             respawn_point: Vec3::new(55.0, 50.0, CHARACTER_Z),
             current_map: 0,
-            potion_spawns: vec![Vec2::new(380.0, 130.0), Vec2::new(380.0, 130.0)],
+            respawn_alt: false,
+            potion_spawns: vec![
+                Vec2::new(55.0, 50.0),
+                Vec2::new(2440.0, 140.0),
+                Vec2::new(55.0, 50.0),
+                Vec2::new(55.0, 50.0),
+            ],
             levels: vec![
                 //TODO find better way to handle this that also works on web
                 include_str!("../assets/maps/map_1.map").to_string(),
@@ -79,7 +85,8 @@ fn main() {
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
         .add_system(setup_default_map.in_schedule(OnExit(GameState::Menu)))
-        .add_system(camera_updating)
+        .add_system(camera_updating.in_set(OnUpdate(GameState::Platforming)))
+        .add_system(camera_updating.in_set(OnUpdate(GameState::Cutscene)))
         .add_plugin(PlayerPlugin)
         .add_plugin(DialogPlugin)
         .add_plugin(MapPlugin)
