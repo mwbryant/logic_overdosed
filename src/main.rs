@@ -112,7 +112,7 @@ fn jump_audio(
     }
     audio
         .play(asset_server.load("audio/jump.wav"))
-        .with_volume(0.5);
+        .with_volume(0.4);
 }
 
 fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
