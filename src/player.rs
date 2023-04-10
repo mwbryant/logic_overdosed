@@ -73,7 +73,7 @@ fn player_death(
         return;
     }
     let player = player.single();
-    if player.translation.y < -64.0 {
+    if player.translation.y < -96.0 {
         let fade = spawn_fadeout(&mut commands, 1.0, 0.4, 1.0);
         commands.entity(fade).insert(DeathFade);
     }
@@ -263,6 +263,7 @@ fn player_jump(
         &mut PlayerVelocity,
         &PlayerStats,
     )>,
+    mut writer: EventWriter<JumpEvent>,
     mut player_particles: Query<&mut RectParticleEmitter, With<PlayerHeadParticles>>,
     keyboard: Res<Input<KeyCode>>,
 ) {
@@ -294,6 +295,7 @@ fn player_jump(
             velocity.velocity.y = -0.1;
             if keyboard.just_pressed(KeyCode::Space) {
                 velocity.velocity += Vec2::new(0.0, stats.jump_strength);
+                writer.send(JumpEvent);
             }
         } else if stats.can_wall_jump
             && velocity.last_on_wall < 6
@@ -302,9 +304,11 @@ fn player_jump(
             if velocity.on_wall == OnWall::OnLeft {
                 velocity.velocity.y = -0.1;
                 velocity.velocity += Vec2::new(-stats.wall_jump_strength, stats.jump_strength);
+                writer.send(JumpEvent);
             } else {
                 velocity.velocity.y = -0.1;
                 velocity.velocity += Vec2::new(stats.wall_jump_strength, stats.jump_strength);
+                writer.send(JumpEvent);
             }
         }
     }

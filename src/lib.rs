@@ -21,6 +21,7 @@ pub mod prelude {
     pub use crate::utils::*;
 
     pub use bevy::{prelude::*, utils::HashMap};
+    pub use bevy_kira_audio::prelude::*;
     pub use bevy_rapier2d::prelude::*;
 
     pub const BACKGROUND_Z: f32 = 10.0;
@@ -33,6 +34,7 @@ pub mod prelude {
     pub const WORLD_UI_Z: f32 = 999.0;
 
     pub struct DisableEffectsEvent;
+    pub struct JumpEvent;
 
     #[derive(Resource)]
     pub struct MainRender(pub Handle<Image>);

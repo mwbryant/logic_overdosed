@@ -22,6 +22,7 @@ fn main() {
 
     app.add_state::<GameState>()
         .add_event::<DisableEffectsEvent>()
+        .add_event::<JumpEvent>()
         .insert_resource(StoryProgression {
             story_marker: 0,
             respawn_point: Vec3::new(55.0, 50.0, CHARACTER_Z),
@@ -76,11 +77,11 @@ fn main() {
                 })
                 .build(),
         )
-        .add_plugin(
-            WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
-        )
+        //.add_plugin(
+        //WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
+        //)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(50.0))
-        .add_plugin(RapierDebugRenderPlugin::default())
+        //.add_plugin(RapierDebugRenderPlugin::default())
         .add_system(setup_player.in_schedule(OnExit(GameState::Menu)))
         .add_system(update_lifetimes.in_base_set(CoreSet::PostUpdate))
         .add_startup_system(setup_camera)
@@ -92,9 +93,37 @@ fn main() {
         .add_plugin(MapPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(SpeedrunPlugin)
+        .add_plugin(AudioPlugin)
+        .add_system(start_background_audio.on_startup())
+        .add_system(jump_audio)
         .add_plugin(ArtPlugin);
 
     app.run();
+}
+
+fn jump_audio(
+    asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
+    mut reader: EventReader<JumpEvent>,
+) {
+    //XXX use run condition
+    if reader.iter().count() == 0 {
+        return;
+    }
+    audio
+        .play(asset_server.load("audio/jump.wav"))
+        .with_volume(0.5);
+}
+
+fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    audio
+        .play(asset_server.load("audio/background.wav"))
+        .fade_in(AudioTween::new(
+            std::time::Duration::from_secs(2),
+            AudioEasing::OutPowi(2),
+        ))
+        .with_volume(0.5)
+        .looped();
 }
 
 fn camera_updating(
